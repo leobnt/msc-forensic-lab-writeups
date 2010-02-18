@@ -1,0 +1,463 @@
+% !TEX TS-program = pdflatex
+% !TEX encoding = UTF-8 Unicode
+
+\documentclass[a4paper,
+    11pt,
+    normalheadings,
+%   parskip,
+    parindent,
+%   draft,
+%   final,
+%   bibgerm,
+%   german,
+    UKenglish,
+%   twoside,
+%   twocolum,
+%   openright,  % Kap.beginn immer rechts! (fkt. nur bei report, nicht bei article)
+    abstracton,
+    ]{scrartcl}
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc} % set input encoding (not needed with XeLaTeX)
+
+%%% Examples of Article customizations
+% These packages are optional, depending whether you want the features they provide.
+% See the LaTeX Companion or other references for full information.
+
+%%% PAGE DIMENSIONS
+\usepackage{geometry} % to change the page dimensions
+\geometry{a4paper} % or letterpaper (US) or a5paper or....
+% \geometry{margins=2in} % for example, change the margins to 2 inches all round
+% \geometry{landscape} % set up the page for landscape
+%   read geometry.pdf for detailed page layout information
+
+\usepackage{graphicx} % support the \includegraphics command and options
+
+\usepackage[parfill]{parskip} % Activate to begin paragraphs with an empty line rather than an indent
+
+%%% PACKAGES
+\usepackage{booktabs} % for much better looking tables
+\usepackage{array} % for better arrays (eg matrices) in maths
+\usepackage{paralist} % very flexible & customisable lists (eg. enumerate/itemize, etc.)
+\usepackage{verbatim} % adds environment for commenting out blocks of text & for better verbatim
+\usepackage{subfig} % make it possible to include more than one captioned figure/table in a single float
+% These packages are all incorporated in the memoir class to one degree or another...
+
+
+\usepackage[colorlinks,urlcolor=blue,plainpages=false]{hyperref}
+\usepackage{embedfile}        % Provides \embedfile[filename=foo, desc={bar}]{file}
+\usepackage{hyperxmp}         % To be have an XMP Data Stream f.e. to include the license
+
+% \usepackage{newcent}  % Different Font, looks bigger
+
+\usepackage{ifthen}
+
+\usepackage[
+    T1, % this is good for Umlauts
+%   OT1 % This breaks Umlauts
+       ]{fontenc}
+
+%%% HEADERS & FOOTERS
+\usepackage{fancyhdr} % This should be set AFTER setting up the page geometry
+\pagestyle{fancy} % options: empty , plain , fancy
+\renewcommand{\headrulewidth}{0pt} % customise the layout...
+\lhead{}\chead{}\rhead{}
+\lfoot{}\cfoot{\thepage}\rfoot{}
+
+%%% SECTION TITLE APPEARANCE
+\usepackage{sectsty}
+\allsectionsfont{\sffamily\mdseries\upshape} % (See the fntguide.pdf for font help)
+% (This matches ConTeXt defaults)
+
+%%% ToC (table of contents) APPEARANCE
+\usepackage[nottoc,notlof,notlot]{tocbibind} % Put the bibliography in the ToC
+\usepackage[titles,subfigure]{tocloft} % Alter the style of the Table of Contents
+\renewcommand{\cftsecfont}{\rmfamily\mdseries\upshape}
+\renewcommand{\cftsecpagefont}{\rmfamily\mdseries\upshape} % No bold!
+
+\usepackage{listings}
+
+%%% END Article customizations
+
+%%% The "real" document content comes below...
+
+% Title Page
+\newcommand{\mytitle}{Lab01: Linux and Introductory Forensics}
+\subject{Report\\%
+    Forensics\\%
+    Summersemester 2010\\%
+    CA643\\%
+    Charlie Daly}
+\title{\mytitle{}}
+%\subtitle{}
+\author{
+    cand. Dipl. Inf. Tobias Müller <\href{mailto:muellet2@computing.dcu.ie?subject=ss10-forensic-lab01}{muellet2@}>, 59212333 \and
+    BSc. Anthony Walters <\href{mailto:waltersa3@computing.dcu.ie?subject=ss10-forensic-lab01}{waltersa3@}>, 59213102
+    }
+% \institute[Mathe - UniHH]{Fachbereich Mathematik\\
+%         Universit\"at Hamburg}
+% \logo{\includegraphics[height=0.5cm]{cinsects-blue}}
+% \titlegraphic{\includegraphics[width=1.5cm]{fsr-logo}}
+\date{\today}
+
+
+\hypersetup{
+        pdftitle={\mytitle{}},
+        pdfauthor={Tobias Mueller, Anthony Walters},
+        pdfsubject={Forensics},
+        pdfkeywords={uni, linux, windows, ca643, forensics, find},
+        pdflang=en,
+        pdfcopyright={This work is licensed to the public under the Creative Commons Attribution-Non-Commercial-Share Alike 3.0 Germany License.},
+        pdflicenseurl={http://creativecommons.org/licenses/by-nc-sa/3.0/de/}
+}
+
+\hyphenation{Infor-mations-sys-teme}
+\hyphenation{\"{o}ko-logischen}
+
+\newcommand{\note}[1]{#1}
+% \newcommand{\comment}[1]{}
+\newcommand{\inlinequote}[1]{``\textit{#1}''}
+\newcommand{\FIXME}[1]{\mbox{}\marginpar{\footnotesize\raggedright\hspace{0pt}\color{red}\emph{#1}}}
+
+\begin{document}
+\maketitle
+
+
+\section{Introduction}
+
+The purpose of this lab is to get used to using Linux and Linux command line tools such as {\tt grep, find} and {\tt file} for the purpose of a forensic analysis.
+
+\section{Initial Setup}
+
+The PC to be analysed is known to have a dual boot system in operation which included Ubuntu GNU/Linux and Windows XP, both of which were installed onto the PC's hard drive(s).
+A decision was taken to boot the PC using third party media in the form of a Ubuntu bootable USB stick, or CD in order to mitigate the possibility of the previously installed version of Ubuntu modifying the Windows XP partition in some way on bootup.
+
+A Ubuntu 9.04 live CD was used to boot the PC. On bootup, a terminal was started and switched into root with the {\tt sudo -i} command. The keyboard map was changed to an Irish one using the command {\tt setxkbmap ie}.
+
+The partitions on our PC were listed and the partition we are interested in was identified using {\tt fdisk -l}:
+
+\begin{verbatim}
+root@ubuntu:~# fdisk -l
+
+Disk /dev/sda: 160.0 GB, 160041885696 bytes
+255 heads, 63 sectors/track, 19457 cylinders
+Units = cylinders of 16065 * 512 = 8225280 bytes
+Disk identifier: 0x4d774d76
+
+   Device Boot      Start         End      Blocks   Id  System
+/dev/sda1   *           1       19083   153284166   83  Linux
+/dev/sda2           19084       19457     3004155    5  Extended
+/dev/sda5           19084       19457     3004123+  82  Linux swap / Solaris
+
+Disk /dev/sdb: 123.5 GB, 123522416640 bytes
+255 heads, 63 sectors/track, 15017 cylinders
+Units = cylinders of 16065 * 512 = 8225280 bytes
+Disk identifier: 0xd220d220
+
+   Device Boot      Start         End      Blocks   Id  System
+/dev/sdb1   *           1       15016   120615988+   7  HPFS/NTFS
+root@ubuntu:~#
+\end{verbatim}
+
+To ensure the partition was not already mounted, the {\tt mount} command was used.
+
+\begin{verbatim}
+root@ubuntu:~# mount
+proc on /proc type proc (rw)
+sysfs on /sys type sysfs (rw)
+tmpfs on /lib/modules/2.6.28-11-generic/volatile type tmpfs (rw,mode=0755)
+tmpfs on /lib/modules/2.6.28-11-generic/volatile type tmpfs (rw,mode=0755)
+tmpfs on /lib/init/rw type tmpfs (rw,nosuid,mode=0755)
+varrun on /var/run type tmpfs (rw,nosuid,mode=0755)
+varlock on /var/lock type tmpfs (rw,noexec,nosuid,nodev,mode=1777)
+udev on /dev type tmpfs (rw,mode=0755)
+tmpfs on /dev/shm type tmpfs (rw,nosuid,nodev)
+devpts on /dev/pts type devpts (rw,noexec,nosuid,gid=5,mode=620)
+rootfs on / type rootfs (rw)
+/dev/sr0 on /cdrom type iso9660 (ro,noatime)
+/dev/loop0 on /rofs type squashfs (ro,noatime)
+fusectl on /sys/fs/fuse/connections type fusectl (rw)
+tmpfs on /tmp type tmpfs (rw,nosuid,nodev)
+binfmt_misc on /proc/sys/fs/binfmt_misc type binfmt_misc (rw,noexec,nosuid,nodev)
+gvfs-fuse-daemon on /home/ubuntu/.gvfs type fuse.gvfs-fuse-daemon (rw,nosuid,nodev,user=ubuntu)
+root@ubuntu:~#
+\end{verbatim}
+
+
+You can see from the {\tt dfisk -l} command that the Windows XP partion is located at {\tt /dev/sdb1}.
+The partitions on {\tt /dev/sda} belong to the previously installed version of Ubuntu which is part of the afore mentioned dual boot system.
+The partition that we are interested in analysing is the Windows XP partition {\tt /dev/sdb1}.
+
+To preserve the data integrity of the Windows XP installation, the partition was then mounted with the read only, no execute and no access time options using the mount point {\tt /mnt/xpdisk}.
+
+\begin{verbatim}
+mount -o ro,noatime,noexec /dev/sdb1 /mnt/xpdisk
+\end{verbatim}
+
+\begin{verbatim}
+root@ubuntu:~# mkdir /mnt/xpdisk
+root@ubuntu:~# mount -o ro,noatime,noexec /dev/sdb1 /mnt/xpdisk
+root@ubuntu:~# mount
+.
+.
+/dev/sdb1 on /mnt/xpdisk type fuseblk (ro,noexec,nosuid,nodev,noatime,allow_other,blksize=4096)
+\end{verbatim}
+
+\section{Using Find}
+
+To walk through a filesystem can be cumbersome if done manually.
+Fortunately, tools that do that in an automated fashion exist and they can be very helpful to analyse many files.
+Such a tool would be \texttt{find} and it can take many arguments to enable the user to, for example, print information of each file in a structured manner or run any program with the filename as an argument.
+Help on the usage of the \texttt{find} can be obtained reading the corresponding manpage.
+However, interesting arguments to \texttt{find} include \texttt{-printf}, \texttt{-exec} or \texttt{-atime} to print information about the file, to execute a command with the filename or to find files accessed during a defined time range.
+
+
+\section{Analysis Using Timelines}
+
+Using the mounted Windows XP partition, a timeline file was created using the following command.
+This reads the created, modified and access time for each file and prints out the time, the access type and the path to the file, each on a separate line.
+Thereby giving three lines of output for each file on the disk.
+These entries are then sorted according to the time (newest times at the top of the file and oldest times come last in the file) and using this information it is possible to analyse the access type and time of files to construct a sequence of events that occurred on the last login.
+The timeline was saved in the file {\tt timeline.txt}.
+
+\begin{verbatim}
+root@ubuntu:~# find /mnt/xpdisk/ \
+                    -printf "%A+ (a) %p\n%T+ (m) %p\n%C+ (c) %p\n" |
+                    sort > timeline.txt
+\end{verbatim}
+
+\subsection{A Note on MAC Times}
+
+The filesystem keeps metadata of the files it contains.
+This metadata includes
+\begin{description}
+    \item[modification time (m)] representing last change of contents of a file,
+    \item[access time (a)] represting the last time the file was read,
+    \item[change time (c)] being the last time the metadata of the file was changed.
+\end{description}
+However, filesystems such as ZFS or Operating Systems such as Windows, might put a different semantics to the ctime.
+To differentiate these semantics, either the expression ``birth time'' or ``creation time (crtime)'' is used to reflect the time the file was put onto the filesystem for the first time.
+
+\begin{verbatim}
+root@ubuntu:~# grep '/mnt/xpdisk/WINDOWS/twain_32/CNQL80/CANOIT32.EXE' timeline.txt
+1998-06-17+00:14:00 (m) /mnt/xpdisk/WINDOWS/twain_32/CNQL80/CANOIT32.EXE
+2009-08-18+12:08:55 (a) /mnt/xpdisk/WINDOWS/twain_32/CNQL80/CANOIT32.EXE
+2009-08-18+12:08:55 (c) /mnt/xpdisk/WINDOWS/twain_32/CNQL80/CANOIT32.EXE
+root@ubuntu:~#
+\end{verbatim}
+
+There is a subtle difference between (m) and (c) and can be somewhat confusing.
+As can be seen in the example above, the cannon scanner executable has a modification time which precedes the creation/change time, which at first glance does not make much sense.
+The reason for this is that the modification time (m) of a file records when the contents of the file was last modified.
+Whereas the file was written to the disk, or installed, at the creation/change time (c).
+In a nutshell, (m) denotes when the contents of a file last changed, (c) denotes when the metadata of the file changed.
+So in the example above, one might deduce that the developers compiled the CANOIT32.EXE executable at the modification time in 1998, and the user installed the file onto their hard disk at the creation/change time in 2009.
+The access time (a) of a file is self explanatory.
+In cases like log files, which get written to on a regular basis, (c) and (m) will be the same.
+
+\subsection{The Analysis}
+
+The timeline file can be analysed in a variety of ways, simple access can be provided using the {\tt less} command to examine it's contents.
+This provides a read only environment for the file, with advanced search capabilities.
+Other options include the {\tt grep command}.
+The timeline.txt file is sorted according to the timestamp on a file and so looking at the last ten lines in the timeline file, it can be deduced that the PC was powered down at 12:17:33 on 15th Feb 2010.
+
+\begin{verbatim}
+2010-02-15+13:56:34 (m) /mnt/xpdisk/WINDOWS/system32/config/default
+2010-02-15+13:56:34 (m) /mnt/xpdisk/WINDOWS/system32/config/SAM
+2010-02-15+13:56:34 (m) /mnt/xpdisk/WINDOWS/system32/config/SECURITY
+2010-02-15+13:56:34 (m) /mnt/xpdisk/WINDOWS/system32/config/software
+2010-02-15+13:56:34 (m) /mnt/xpdisk/WINDOWS/system32/config/system
+2010-02-15+13:56:34 (m) /mnt/xpdisk/WINDOWS/system32/config/system.LOG
+2010-02-15+13:56:34 (m) /mnt/xpdisk/WINDOWS/system32/
+          DVCState-{00000000-00000000-0000000F-00001102-00000004-00531102}.rfx
+2010-02-15+13:56:35 (a) /mnt/xpdisk/System Volume Information/
+          _restore{6FF38756-B352-4DBB-8C7C-DB23A6F4B99B}/_driver.cfg
+2010-02-15+13:56:35 (c) /mnt/xpdisk/System Volume Information/
+          _restore{6FF38756-B352-4DBB-8C7C-DB23A6F4B99B}/_driver.cfg
+2010-02-15+13:56:35 (m) /mnt/xpdisk/System Volume Information/
+          _restore{6FF38756-B352-4DBB-8C7C-DB23A6F4B99B}/_driver.cfg
+\end{verbatim}
+
+
+These were the last files to be modified before shutdown, working backwards from this we can determine the user name of the last logged in user.
+
+Things to note are, the Windows update log was modified just before shutdown.
+\begin{verbatim}
+root@ubuntu:~# grep '/mnt/xpdisk/WINDOWS/WindowsUpdate.log' timeline.txt | sort
+2010-02-15+13:56:16 (a) /mnt/xpdisk/WINDOWS/WindowsUpdate.log
+2010-02-15+13:56:16 (c) /mnt/xpdisk/WINDOWS/WindowsUpdate.log
+2010-02-15+13:56:16 (m) /mnt/xpdisk/WINDOWS/WindowsUpdate.log
+root@ubuntu:~#
+\end{verbatim}
+
+
+AVG modified it's log files. Note that the following log is shortened to fit on the page and each file should  be read prefixed \texttt{/mnt/xpdisk/Documents and Settings/All Users/Application Data/}.
+\begin{verbatim}
+2010-02-15+13:56:15 (m) avg8/Cfg/mail.cfg
+2010-02-15+13:56:15 (m) avg8/emc/Log/emc.log
+2010-02-15+13:56:15 (m) avg8/Log/avgcore.log
+2010-02-15+13:56:15 (m) avg8/Log/avgsrm.log
+2010-02-15+13:56:15 (m) avg8/Log/avgwd.log
+2010-02-15+13:56:15 (m) avg8/Log/avgwdsvc.log
+2010-02-15+13:56:15 (m) avg8/Log/commonpriv.log
+2010-02-15+13:56:15 (m) avg8/Log/history.xml
+\end{verbatim}
+
+
+The PC was known to have been switched off between 12:30 and 13:30, so from the sample of the timeline.txt file below, it is reasonable to conclude that the timeline for the last session on this PC started at {\tt 2010-02-15+13:34:54.0000000000}.
+
+\begin{verbatim}
+2010-02-15+12:17:12 (c) /mnt/xpdisk/WINDOWS/system32/wbem/Logs/
+            wbemess.lo_
+2010-02-15+12:17:12 (m) /mnt/xpdisk/System Volume Information/
+            _restore{6FF38756-B352-4DBB-8C7C-DB23A6F4B99B}/RP171/A0036745.ini
+2010-02-15+12:17:12 (m) /mnt/xpdisk/WINDOWS/system32/wbem/Logs
+2010-02-15+12:17:12 (m) /mnt/xpdisk/WINDOWS/system32/wbem/Logs/
+            wbemess.lo_
+2010-02-15+12:17:13 (a) /mnt/xpdisk/System Volume Information/
+            _restore{6FF38756-B352-4DBB-8C7C-DB23A6F4B99B}/RP171/A0036740.cfg
+2010-02-15+12:17:13 (c) /mnt/xpdisk/System Volume Information/
+            _restore{6FF38756-B352-4DBB-8C7C-DB23A6F4B99B}/RP171/A0036746.cfg
+2010-02-15+12:17:13 (m) /mnt/xpdisk/System Volume Information/
+            _restore{6FF38756-B352-4DBB-8C7C-DB23A6F4B99B}/RP171/A0036746.cfg
+2010-02-15+12:17:14 (a) /mnt/xpdisk/System Volume Information/
+            _restore{6FF38756-B352-4DBB-8C7C-DB23A6F4B99B}/RP171/change.log.2
+2010-02-15+12:17:14 (m) /mnt/xpdisk/System Volume Information/
+            _restore{6FF38756-B352-4DBB-8C7C-DB23A6F4B99B}/RP171/change.log.2
+2010-02-15+13:34:54 (a) /mnt/xpdisk/WINDOWS/system32/
+            drivers/nic1394.sys
+2010-02-15+13:34:54 (a) /mnt/xpdisk/WINDOWS/system32/ntdll.dll
+2010-02-15+13:34:56 (a) /mnt/xpdisk/
+2010-02-15+13:34:56 (a) /mnt/xpdisk/Documents and Settings
+2010-02-15+13:34:56 (a) /mnt/xpdisk/Documents and Settings/
+            All Users
+2010-02-15+13:34:56 (a) /mnt/xpdisk/Documents and Settings/
+            All Users/Application Data
+2010-02-15+13:34:56 (a) /mnt/xpdisk/Documents and Settings/
+            All Users/Application Data/avg8
+2010-02-15+13:34:56 (a) /mnt/xpdisk/Documents and Settings/
+            All Users/Application Data/avg8/Cfg
+2010-02-15+13:34:56 (a) /mnt/xpdisk/Documents and Settings/
+            All Users/Application Data/avg8/cfgall
+2010-02-15+13:34:56 (a) /mnt/xpdisk/Documents and Settings/
+            All Users/Application Data/Lavasoft
+\end{verbatim}
+
+Here you can see where the Windows chimes, `Windows XP Startup.wav' was played, further evidence that the login time of the PC was just after 15:30.
+
+\begin{verbatim}
+2010-02-15+13:36:01 (a) /mnt/xpdisk/WINDOWS/Media/Windows XP Startup.wav
+\end{verbatim}
+
+The first user profile to be accessed was the global All users profile, after which the godzilla profile was accessed as as can be seen below.
+So it can be deduced that the user `godzilla' was logged into the PC during the last session.
+\begin{verbatim}
+2010-02-15+13:34:56 (a) /mnt/xpdisk/Documents and Settings
+2010-02-15+13:34:56 (a) /mnt/xpdisk/Documents and Settings/All Users
+...
+2010-02-15+13:34:56 (a) /mnt/xpdisk/Documents and Settings/godzilla
+2010-02-15+13:34:56 (a) /mnt/xpdisk/Documents and Settings/godzilla/
+            Application Data
+2010-02-15+13:34:56 (a) /mnt/xpdisk/Documents and Settings/godzilla/
+            Application Data/Microsoft
+\end{verbatim}
+
+
+
+
+\subsection{Firefox}
+The following listing shows SQLite files the contain Firefox cookies and browsing history.
+Note that the listing is shortened to fit on the paper.
+File locations have to be read with ``/mnt/xpdisk/Documents and Settings/godzilla/'' as their prefix.
+\begin{verbatim}
+2010-02-15+13:43:05 (a) /Application Data/Mozilla/Firefox/Profiles
+                        /e2cv0fk4.default/cookies.sqlite
+2010-02-15+13:43:05 (a) /Application Data/Mozilla/Firefox/Profiles
+                        /e2cv0fk4.default/downloads.sqlite
+2010-02-15+13:43:05 (a) /Application Data/Mozilla/Firefox/Profiles
+                        /e2cv0fk4.default/permissions.sqlite
+2010-02-15+13:43:05 (a) /Application Data/Mozilla/Firefox/Profiles
+                        /e2cv0fk4.default/places.sqlite
+2010-02-15+13:43:05 (a) /Application Data/Mozilla/Firefox/Profiles
+                        /e2cv0fk4.default/search.sqlite
+2010-02-15+13:43:05 (a) /Local Settings/Application Data/Mozilla/Firefox
+                        /Profiles/e2cv0fk4.default/XUL.mfl
+2010-02-15+13:43:05 (c) /Application Data/Mozilla/Firefox/Profiles
+                        /e2cv0fk4.default/cookies.sqlite
+2010-02-15+13:43:05 (m) /Application Data/Mozilla/Firefox/Profiles
+                        /e2cv0fk4.default/cookies.sqlite
+\end{verbatim}
+
+These files can be examined using proper tools, e.g.\, from the \texttt{sqlite.org} website.
+\begin{verbatim}
+root@ubuntu:~# sqlite3 [...]/e2cv0fk4.default/places.sqlite
+SQLite version 3.6.22
+Enter ".help" for instructions
+Enter SQL statements terminated with a ";"
+sqlite> .tables
+moz_anno_attributes  moz_favicons         moz_keywords
+moz_annos            moz_historyvisits    moz_places
+moz_bookmarks        moz_inputhistory
+moz_bookmarks_roots  moz_items_annos
+sqlite>
+\end{verbatim}
+
+You can pass queries from the command line this and then examine the data in a shell too such as {\tt less}.
+\begin{verbatim}
+root@ubuntu:~# sqlite3 .../e2cv0fk4.default/places.sqlite\
+    "SELECT datetime(moz_historyvisits.visit_date/1000000,'unixepoch'),
+            moz_places.url
+     FROM moz_places, moz_historyvisits
+     WHERE moz_places.id = moz_historyvisits.place_id"
+\end{verbatim}
+
+Output is in the structure of, date, time and link as shown in the (shortened) log fragment below:
+\begin{verbatim}
+2010-02-15 13:39:57|http://slashdot.org/slashdot-it.pl...
+2010-02-15 13:40:39|http://s7.addthis.com/static/r07/sh10.html
+2010-02-15 13:41:43|http://www.google.com/accounts/Logout2?service=mail...
+2010-02-15 13:41:43|http://www.google.ie/accounts/Logout2?&service=mail...
+2010-02-15 13:42:46|http://fantasy.premierleague.com/M/table.mc?id=114550
+\end{verbatim}
+
+
+\section{File Extension Mismatches}
+
+We analysed the disk for files which's content did not match their extension, i.e.\, an image file with a \texttt{.txt} suffix.
+A user might have changed the file extension to hide content, because Windows opens files according to their extension rather than looking at the mime-type to identify a suitable program to open the file.
+So to find all files of a certain type, i.e.\, pictures or documents, you should not identify files by their extension but rather their mime-type.
+\begin{verbatim}
+root@ubuntu:~# find /mnt/xpdisk/ -type f -print0 |
+                xargs -0 file --mime-type | grep -E "image/[^/]*$" |
+                ./fileExtensionCheck.py | grep mismatch
+mismatch /mnt/xpdisk/Documents and Settings/godzilla
+         /Local Settings/Temporary Internet Files
+         /Content.IE5/EVTZEVXI/p[1].txt:txt: image/jpeg
+...
+\end{verbatim}
+The result shows that there is a file named \verb|p[1].txt| that has the .txt suffix making it appear as a text file under Windows but its mimetype shows that it is actually an image in JPEG format.
+This is not too interesting though, because the path of the file suggests that the browser put a temporary file as opposed to the user actively renaming the file.
+
+\begin{verbatim}
+2010-02-15+13:47:58 (a) /mnt/xpdisk/Program Files/Internet Explorer/ieproxy.dll
+2010-02-15+13:47:58 (a) /mnt/xpdisk/Program Files/Internet Explorer/iexplore.exe
+2010-02-15+13:47:58 (a) /mnt/xpdisk/Program Files/Java/jre6/bin/jp2ssv.dll
+...
+2010-02-15+13:48:41 (c) /mnt/xpdisk/Documents and Settings/godzilla/
+                        Local Settings/Temporary Internet Files/
+                        Content.IE5/MRXSZCJN/comment[1].gif
+2010-02-15+13:48:41 (m) /mnt/xpdisk/Documents and Settings/godzilla/
+                        Local Settings/Temporary Internet Files/
+                        Content.IE5/EVTZEVXI/email[1].gif
+2010-02-15+13:48:41 (m) /mnt/xpdisk/Documents and Settings/godzilla/
+                        Local Settings/Temporary Internet Files/
+                        Content.IE5/EVTZEVXI/p[1].txt
+2010-02-15+13:48:41 (m) /mnt/xpdisk/Documents and Settings/godzilla/
+                        Local Settings/Temporary Internet Files/
+                        Content.IE5/H0YFYEZA/like-deselected[1].gif
+\end{verbatim}
+
+As you can see above, internet explorer was loaded a couple of seconds before the file in question were created or modified.
+Thus is it most likely that Internet Explorer created these files and it was not a user trying to hide an image file by changing its extension.
+
+\end{document}
