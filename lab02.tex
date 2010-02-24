@@ -1,0 +1,485 @@
+% !TEX TS-program = pdflatex
+% !TEX encoding = UTF-8 Unicode
+
+\documentclass[a4paper,
+    11pt,
+    normalheadings,
+%   parskip,
+    parindent,
+%   draft,
+%   final,
+%   bibgerm,
+%   german,
+    UKenglish,
+%   twoside,
+%   twocolum,
+%   openright,  % Kap.beginn immer rechts! (fkt. nur bei report, nicht bei article)
+    abstracton,
+    ]{scrartcl}
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc} % set input encoding (not needed with XeLaTeX)
+
+%%% Examples of Article customizations
+% These packages are optional, depending whether you want the features they provide.
+% See the LaTeX Companion or other references for full information.
+
+%%% PAGE DIMENSIONS
+\usepackage{geometry} % to change the page dimensions
+\geometry{a4paper} % or letterpaper (US) or a5paper or....
+% \geometry{margins=2in} % for example, change the margins to 2 inches all round
+% \geometry{landscape} % set up the page for landscape
+%   read geometry.pdf for detailed page layout information
+
+\usepackage{graphicx} % support the \includegraphics command and options
+
+\usepackage[parfill]{parskip} % Activate to begin paragraphs with an empty line rather than an indent
+
+%%% PACKAGES
+\usepackage{booktabs} % for much better looking tables
+\usepackage{array} % for better arrays (eg matrices) in maths
+\usepackage{paralist} % very flexible & customisable lists (eg. enumerate/itemize, etc.)
+\usepackage{verbatim} % adds environment for commenting out blocks of text & for better verbatim
+\usepackage{subfig} % make it possible to include more than one captioned figure/table in a single float
+% These packages are all incorporated in the memoir class to one degree or another...
+
+
+\usepackage[colorlinks,urlcolor=blue,plainpages=false]{hyperref}
+\usepackage{embedfile}        % Provides \embedfile[filename=foo, desc={bar}]{file}
+\usepackage{hyperxmp}         % To be have an XMP Data Stream f.e. to include the license
+
+% \usepackage{newcent}  % Different Font, looks bigger
+
+\usepackage{ifthen}
+
+\usepackage[
+    T1, % this is good for Umlauts
+%   OT1 % This breaks Umlauts
+       ]{fontenc}
+
+%%% HEADERS & FOOTERS
+\usepackage{fancyhdr} % This should be set AFTER setting up the page geometry
+\pagestyle{fancy} % options: empty , plain , fancy
+\renewcommand{\headrulewidth}{0pt} % customise the layout...
+\lhead{}\chead{}\rhead{}
+\lfoot{}\cfoot{\thepage}\rfoot{}
+
+%%% SECTION TITLE APPEARANCE
+\usepackage{sectsty}
+\allsectionsfont{\sffamily\mdseries\upshape} % (See the fntguide.pdf for font help)
+% (This matches ConTeXt defaults)
+
+%%% ToC (table of contents) APPEARANCE
+\usepackage[nottoc,notlof,notlot]{tocbibind} % Put the bibliography in the ToC
+\usepackage[titles,subfigure]{tocloft} % Alter the style of the Table of Contents
+\renewcommand{\cftsecfont}{\rmfamily\mdseries\upshape}
+\renewcommand{\cftsecpagefont}{\rmfamily\mdseries\upshape} % No bold!
+
+\usepackage{listings}
+
+%%% END Article customizations
+
+%%% The "real" document content comes below...
+
+% Title Page
+\newcommand{\mytitle}{Lab02: Windows XP Artefacts}
+\subject{Report\\%
+    Forensics\\%
+    Summersemester 2010\\%
+    CA643\\%
+    Charlie Daly}
+\title{\mytitle{}}
+%\subtitle{}
+\author{
+    cand. Dipl. Inf. Tobias Müller <\href{mailto:muellet2@computing.dcu.ie?subject=ss10-forensic-lab01}{muellet2@}>, 59212333 \and
+    BSc. Anthony Walters <\href{mailto:waltersa3@computing.dcu.ie?subject=ss10-forensic-lab01}{waltersa3@}>, 59213102
+    }
+% \institute[Mathe - UniHH]{Fachbereich Mathematik\\
+%         Universit\"at Hamburg}
+% \logo{\includegraphics[height=0.5cm]{cinsects-blue}}
+% \titlegraphic{\includegraphics[width=1.5cm]{fsr-logo}}
+\date{\today}
+
+
+\hypersetup{
+        pdftitle={\mytitle{}},
+        pdfauthor={Tobias Mueller, Anthony Walters},
+        pdfsubject={Forensics},
+        pdfkeywords={uni, linux, windows, ca643, forensics, find},
+        pdflang=en,
+        pdfcopyright={This work is licensed to the public under the Creative Commons Attribution-Non-Commercial-Share Alike 3.0 Germany License.},
+        pdflicenseurl={http://creativecommons.org/licenses/by-nc-sa/3.0/de/}
+}
+
+\hyphenation{Infor-mations-sys-teme}
+\hyphenation{\"{o}ko-logischen}
+
+\newcommand{\note}[1]{#1}
+\renewcommand{\comment}[1]{}
+\newcommand{\inlinequote}[1]{``\textit{#1}''}
+\newcommand{\FIXME}[1]{\mbox{}\marginpar{\footnotesize\raggedright\hspace{0pt}\color{red}\emph{#1}}}
+
+\begin{document}
+\selectlanguage{english}
+\maketitle
+
+
+\section{Introduction}
+During this lab, students were asked to examine artefacts that Windows XP creates during operation.
+It is worth noting that we expect Windows XP to run with default settings because it is possible to configure a Windows XP system to stop leaking at least some data we are looking at.
+Given an image of a Windows XP system, one can find much information about the way it has been used, because Windows XP has many file caches and databases which get updated during the normal operation of the operating system.
+
+During this case study, we will examine windows artefacts and how they relate to each other and examine their relationship to the filesystem timeline. Artefacts that we will be looking at include Windows link files and the ``Recent Documents'' documents folder, windows thumbnails and the effects of removing and adding images from a directory. The recycle bin  and the  purpose of an INFO2 file and what information it stores. We will start introducing  artefacts that we have examined before we present our case in which we identify
+images a user possibly has last recently used, images that have almost certainly been on the disk were almost certainly deleted
+and lastly files that have been ``deleted'' into Windows recycle bin.
+
+
+
+\section{Analysis}
+
+We were given a windows XP dd image which we mounted as follows to preserve its integrity: \verb|sudo mount -o loop,noatime,ro XP-4G.ntfs.dd /mnt/xpdisk/|
+
+
+\subsection{Recent Documents}
+For convenience, Windows saves links to the recently accessed documents.
+This allows the user to quickly find the last files she worked on or look at.
+These links are actually files with the \texttt{.lnk} extension, as opposed to lightweight symlinks.
+Microsoft generously released documentation for that file format in 2009\footnote{See \url{http://download.microsoft.com/download/B/0/B/B0B199DB-41E6-400F-90CD-C350D0C14A53/\%5BMS-SHLLINK\%5D.pdf}},
+after having introduced that fileformat 15 years ago with Windows 95\footnote{Cmp.\url{http://en.wikipedia.org/wiki/Computer_shortcut}}.
+
+These \texttt{.lnk} files contain various fields which are technically and forensically interesting.
+From an engineering point of view, it is interesting to see that keyboard shortcuts  are apparently saved in those \texttt{.lnk} files as opposed to saving them centrally and on a per-user basis, thus allowing a potentially malicious link file to contain a keyboard shortcut to overwrite an already existing one.
+Also with the 4-byte \texttt{CursorSize} field representing an unsigned integer, they allow a cursor size of 4 billion pixels.
+Forensically interesting are at least the MAC Times saved in a \texttt{.lnk} file or which disk the linked file came from, i.e.\, whether it came from a local hard disk or a removable storage (thus indicating that a USB storage might have been plugged in).
+
+To obtain the information about the documents which have most likely been accessed recently, we search the \texttt{\%USERPROFILE\%\textbackslash{}Recent\textbackslash{}} folder for the above mentioned \texttt{.lnk} files:
+
+\begin{verbatim}
+$ find  Recent/*.lnk
+ducks.lnk          rubber-duck-logo.lnk  Yellow Ducks_s.lnk
+duckies.lnk       DucksPage1.lnk     rubber-ducks.lnk
+ducks (2).lnk     luvduc_lg.lnk      sea-of-ducks-300.lnk
+ducks-787976.lnk  rubber-duck-1.lnk  space-duck.lnk
+\end{verbatim}
+
+Using a parser for a \texttt{.lnk} file (we used \emph{hachoir}\footnote{Obtained from \url{http://bytebucket.org/haypo/hachoir/wiki/hachoir-urwid}}), we analysed \texttt{rubber-ducks.lnk} and obtained at least the following information\footnote{Unfortunately, the program used does not create output which suitable for copy\&pasting so that we did not include and transcripts. The information, however, can easily be retrieved by simply running the program with no parameters on the link file.}:
+The hostname of the machine the link was created on (in this case: \texttt{duckies}), the full and relative path to the referenced file (\texttt{\%USERPROFILE\%\textbackslash{}My Documents\textbackslash{}My Pictures\textbackslash{}duckies\textbackslash{}rubber-ducks.jpg}), the type of storage (local or network) and the UUID of it (1054-BA98).
+Interestingly, the MAC times of link files in the Recent folder are set to zero.
+Other link files, e.g.\, for the start menu, have MAC times set.
+The access and created time saved in the \texttt{.lnk} file matches the filesystem information for that link file.
+Since the modified time saved in the \texttt{.lnk} file matches the mtime of the target file, we presume it represents the last time the \emph{target file} has been modified.
+
+
+\if0
+\begin{verbatim}
+         4) volume_type= Fixed (Hard disk): Volume Type (4 bytes)
+         8) volume_serial= 1054-BA98: Volume Serial Number (4 bytes)
+         12) label_offset= 16: Offset to volume label (4 bytes)
+         16) drive= (empty) (1 byte)
+      45) local_base_pathname= "C:\Documents and Settings\Donald\My Docu(...)":
+      111) final_pathname= (empty): Final component of the pathname (1 byte)
+ - 344) relative_path= ..\My Documents\My Pictures\duckies: Relative path to tar
+      0) length= 35: Length of this string (2 bytes)
+      2) data= "..\My Documents\My Pictures\duckies" (70 bytes)
+ - 416) extra_info[0]: Extra Info Entry: Special Folder Info (16 bytes)
+      0) length= 16: Length of this structure (4 bytes)
+      4) signature= Special Folder Info: Signature determining the function of t
+      8) special_folder_id= MYPICTURES: ID of the special folder (4 bytes)
+      12) offset= 92: Offset to Item ID entry (4 bytes)
+ - 432) extra_info[1]: Extra Info Entry: Hostname and Other Stuff (96 bytes)
+      0) length= 96: Length of this structure (4 bytes)
+      4) signature= Hostname and Other Stuff: Signature determining the function
+      8) remaining_length= 88 (4 bytes)
+      12) unknown[0]= 0 (4 bytes)
+      16) hostname= "thequackery": Computer hostname on which shortcut was last
+\end{verbatim}
+\fi
+
+
+
+
+\subsection{Thumbs.db}
+When browsing a folder which contains images with the Windows Explorer, it will show thumbnails of the images within that folder.
+To increase performance, Windows XP caches the generated thumbnails so that they do not have to be generated each time a folder is viewed.
+Windows XP saves these thumbnail caches in the folder in a file called \texttt{Thumbs.db}.
+These caches get updated as soon as a new image is added to the directory, but not when an image is removed.
+Hence, examining the thumbnail cache can result in finding (small) pictures of images that most likely have been saved in a folder regardless whether they have been removed from that folder.
+\comment{We will show how we do what?!}
+
+We will show how to find those thumbnail caches, examine their contents and match the filenames against the existing files on the filesystem to eventually reconstruct whether images have been deleted from a directory.
+
+\subsubsection{Finding deleted images}
+To speed up further searches on the examined filesystem as well as to understand which actions happened at what time, a timeline of the MAC times was generated and saved:
+\begin{verbatim}
+$ find /mnt/xpdisk/ -printf "%A+ (a) %p\n%T+ (m) %p\n%C+ (c) %p\n"
+                            | sort > timeline.txt
+\end{verbatim}
+
+Using that timeline, we identified all \texttt{Thumbs.db} files on the Windows XP disk:
+\begin{verbatim}
+$ grep -i thumbs.db timeline.txt | sort
+2009-03-04+21:35:40 (a) /mnt/xpdisk/Documents and Settings/All Users/
+                            Documents/My Pictures/Sample Pictures/Thumbs.db
+2009-03-04+21:35:40 (c) /mnt/xpdisk/Documents and Settings/All Users/
+                        Documents/My Pictures/Sample Pictures/Thumbs.db
+2009-03-04+21:35:40 (m) /mnt/xpdisk/Documents and Settings/All Users/
+                        Documents/My Pictures/Sample Pictures/Thumbs.db
+2009-03-04+22:13:14 (a) /mnt/xpdisk/Documents and Settings
+                        /Donald/My Documents/My Pictures/duckies/Thumbs.db
+2009-03-04+22:26:40 (c) /mnt/xpdisk/Documents and Settings
+                        /Donald/My Documents/My Pictures/duckies/Thumbs.db
+2009-03-04+22:26:40 (m) /mnt/xpdisk/Documents and Settings
+                        /Donald/My Documents/My Pictures/duckies/Thumbs.db
+\end{verbatim}
+
+To then obain information about the thumbnail cache, we ran Vinetto against duckies \texttt{Thumbs.db} file.
+Not only does Vinetto show timestamps, but also extracts the actual thumbnails. It extracted a total of twelve thumbnail images to a local subdirectory:
+\begin{verbatim}
+$ vinetto -o . '/mnt/xpdisk/Documents and Settings/
+                     Donald/My Documents/My Pictures/duckies/Thumbs.db'
+/usr/bin/vinetto:35: DeprecationWarning: the md5
+                module is deprecated; use hashlib instead
+
+ Root Entry modify timestamp : Wed Mar  4 22:26:40 2009
+
+ ------------------------------------------------------
+
+ 0001   Wed Mar  4 21:36:18 2009   rubber-ducks.jpg
+ 0002   Wed Mar  4 21:36:42 2009   DucksPage1.jpg
+ 0003   Wed Mar  4 21:39:24 2009   {A42CD7B6-E9B9-4D02-B7A6-288B71AD28BA}
+ 0004   Wed Mar  4 21:37:12 2009   rubber-duck-1.jpg
+ 0005   Wed Mar  4 21:37:06 2009   rubber-duck-logo.jpg
+ 0006   Wed Mar  4 21:37:06 2009   luvduc_lg.jpg
+ 0007   Wed Mar  4 21:37:06 2009   space-duck.jpg
+ 0008   Wed Mar  4 21:38:14 2009   ducks-787976.jpg
+ 0009   Wed Mar  4 21:38:42 2009   sea-of-ducks-300.jpg
+ 0010   Wed Mar  4 21:39:00 2009   ducks.jpg
+ 0011   Wed Mar  4 21:35:50 2009   ducks.png
+ 0012   Wed Mar  4 21:39:26 2009   Yellow Ducks_s.jpg
+
+ ------------------------------------------------------
+
+12 Type 2 thumbnails extracted to ./
+\end{verbatim}
+
+
+
+As a side note: It would have been nice if the information shown above could be integrated in the already existing timeline to have a unified view on the actions that took place on the system.
+To achieve that, one could think of a standard for saving such an information in a normalised manner, just like CISAT\footnote{CISAT from \url{http://web.sec.uni-passau.de/research/softwaresecurity/cisat/} defines a standard for static analysis results to unify output of several tools} does for security scanners.
+A naive approach would be to save a \href{http://www.ietf.org/rfc/rfc2822.txt}{RFC 2822} conforming timestamp along with the filename in question, but to be compatible and extensible, more thoughts need to be spend on that.
+After coming up with a standard notation for events, one either needs to parse the Vinetto output or better: Patch Vinetto so that the output conforms the standard right away.
+However, due to timecontraints, we were not able to do that.
+
+Using the Vinetto output above, it is now interesting to check whether the filesystem still knows about the filenames Vinetto extracted, because if it does not, we can safely assume that file has been either moved or removed.
+Thus, a search of the contents of the {\tt My Documents/My Pictures/duckies/} folder for the user {\tt Donald} was performed to determine if the contents of the folder corresponded to the entries in the \texttt{Thumbs.db} file.
+
+You can see blow that the only files found on the disk in the duckies directory are the two picture files \texttt{space-duck.jpg} and \texttt{Yellow Ducks\_s.jpg} and the \texttt{Thumbs.db} file.
+It is noted that the \texttt{Thumbs.db} file contains images for additional picture files (shown above) which are not present in the filesystem:
+\begin{verbatim}
+$ cd '/mnt/xpdisk/Documents and Settings/Donald/' &&
+    find 'My Documents/My Pictures/duckies/' \
+                -printf "%A+ (a) %p\n%T+ (m) %p\n%C+ (c) %p\n" | sort
+2009-03-04+21:37:05 (c)  My Documents/My Pictures/duckies/space-duck.jpg
+2009-03-04+21:37:05 (m)  My Documents/My Pictures/duckies/space-duck.jpg
+2009-03-04+21:38:11 (a)  My Documents/My Pictures/duckies/space-duck.jpg
+2009-03-04+21:39:24 (c)  My Documents/My Pictures/duckies/Yellow Ducks_s.jpg
+2009-03-04+21:39:24 (m)  My Documents/My Pictures/duckies/Yellow Ducks_s.jpg
+2009-03-04+22:13:11 (a)  My Documents/My Pictures/duckies/Yellow Ducks_s.jpg
+2009-03-04+22:13:14 (a)  My Documents/My Pictures/duckies/Thumbs.db
+2009-03-04+22:26:40 (c)  My Documents/My Pictures/duckies/Thumbs.db
+2009-03-04+22:26:40 (m)  My Documents/My Pictures/duckies/Thumbs.db
+2009-03-04+22:26:57 (a)  My Documents/My Pictures/duckies/
+2009-03-04+22:26:57 (c)  My Documents/My Pictures/duckies/
+2009-03-04+22:26:57 (m)  My Documents/My Pictures/duckies/
+\end{verbatim}
+
+Thus, we can assume that pictures (with the filenames shown above) have been present in the directory in the past but then were (re)moved.
+
+
+
+
+
+\subsubsection{Observations}
+Interestingly, the {\tt Thumbs.db} file an image named
+\texttt{\{A42CD7B6-E9B9-4D02-B7A6-288B71AD28BA\}}
+(line 0003).
+By looking at the extracted image file, we figured that it is used as folder icon.
+We saw 4 images on the folder thumbnail although only two images are present in the filesystem.
+Through experimentation, we found out that when the parent folder is viewed, the \texttt{Root Entry modify timestamp} as shown by Vinetto is updated and the ``folder summary'' icon is changed to reflect the pictures that the folder currently contains.
+Because this folder image summary thumbnail still contains a folder picture with four smaller thumbnail images, we deduced that the parent folder was not viewed in Windows Explorer after the images in the folder were deleted.
+Simply because doing so would have updated the ``summary folder'' thumbnail image in the \texttt{Thumbs.db} file.
+
+
+
+We also found the reported times by Vinetto interesting as they suggest that the last modification of an image took place at \textbf{21:39:26} whereas, according to the filesystems mtime which can be seen on the timeline below, the corresponding \texttt{Thumbs.db} file is reported to be last modified at \textbf{22:26:40}.
+We would have expected that the last modification time as reported by Vinetto matches the time reported by the filesystem.
+\begin{verbatim}
+2009-03-04+22:26:37 (m) /mnt/xpdisk/WINDOWS/system32/CatRoot2/edb.chk
+2009-03-04+22:26:40 (c) /mnt/xpdisk/Documents and Settings/
+                            Donald/My Documents/My Pictures/duckies/Thumbs.db
+2009-03-04+22:26:40 (m) /mnt/xpdisk/Documents and Settings/
+                            Donald/My Documents/My Pictures/duckies/Thumbs.db
+2009-03-04+22:26:46 (a) /mnt/xpdisk/
+2009-03-04+22:26:46 (a) /mnt/xpdisk/RECYCLER
+2009-03-04+22:26:46 (a) /mnt/xpdisk/WINDOWS/system32/mspaint.exe
+2009-03-04+22:26:46 (c) /mnt/xpdisk/
+2009-03-04+22:26:46 (c) /mnt/xpdisk/WINDOWS/system32/mspaint.exe
+2009-03-04+22:26:46 (c) /mnt/xpdisk/WINDOWS/system32/shimgvw.dll
+2009-03-04+22:26:46 (m) /mnt/xpdisk/
+2009-03-04+22:26:46 (m) /mnt/xpdisk/RECYCLER
+2009-03-04+22:26:57 (a) /mnt/xpdisk/Documents and Settings/
+                                Donald/My Documents/My Pictures/duckies
+2009-03-04+22:26:57 (c) /mnt/xpdisk/Documents and Settings/
+                                Donald/My Documents/My Pictures/duckies
+2009-03-04+22:26:57 (m) /mnt/xpdisk/Documents and Settings/
+                                Donald/My Documents/My Pictures/duckies
+\end{verbatim}
+
+This begs the question, what the semantic of the time reported by Vinetto actually is.
+Sadly, since Windows is a proprietary system, one can not look at the code that generates those \texttt{Thumbs.db} files.
+Also, the documentation is not very verbose regarding the structure of a \texttt{Thumbs.db} file\footnote{See \url{http://msdn.microsoft.com/en-us/library/bb774628\%28VS.85\%29.aspx} and \url{http://blogs.msdn.com/openspecification/archive/2009/07/24/exploring-the-compound-file-binary-format.aspx}}.
+The most information is found in a 3rd party document\footnote{\url{http://vinetto.sourceforge.net/docs.html} and \url{http://sc.openoffice.org/compdocfileformat.pdf}} and it claims that the file structure holds two timestamps: The creation and the last modification.
+This expands the raised question to: Why Vinetto is only showing a single timestamp and which one it is.
+
+Again, due to time constrainst, we decided to not investigate the source code of Vinetto or dissect the \texttt{Thumbs.db} manually
+ but rather do experiments with Windows XP to determine behaviourial patterns of Windows XP operating system in relation to the \texttt{Thumbs.db} file and the output of Vinetto.
+
+
+We created a folder, put some images into it and recorded the times of first addition (creation) and modification of the images.
+We constantly ran Vinetto on the \texttt{Thumbs.db} that Windows maintained and the time reported by Vinoetto did not change.
+Hence we assume that the time Vinetto reports does not represent last modification but rather first addition.
+
+The other time reported by Vinetto ({\tt Root Entry modify timestamp : Wed Mar  4 22:26:40 2009}) matches up with the m and c times from the timeline {\tt 2009-03-04+22:26:40}.
+
+
+
+
+
+
+
+
+\subsection{Recycle Bin}
+
+Since we assume that images have been deleted, we investigated the recycle bin on the given image.
+
+Using the {\tt dumpster\_dive} perl script\footnote{obtained from \url{http://jafat.sourceforge.net/files.html}}, we can see that the recycle bin does not contain any files:
+\begin{verbatim}
+$ ~/dumpster_dive.pl /mnt/xpdisk/RECYCLER/
+                                S-1-5-21-1177238915-1606980848-1060284298-1003/INFO2
+INDEX      DELETED TIME      DRIVE NUMBER      PATH      SIZE
+$
+\end{verbatim}
+
+The timeline shown below also reflects this, as the only two files found in the recycle bin, the INFO2 (above) File which has no entries.
+Note that the entries in the listing below are prefixed with the directory {\tt /mnt/xpdisk/RECYCLER} which has been cut off to make it fit on the page.
+\begin{verbatim}
+$ grep /mnt/xpdisk/RECYCLER/ timeline.txt
+2009-03-04+22:44:10 (a) /S-1-5-21-1177238915-1606980848-1060284298-1003
+2009-03-04+22:44:10 (a) /S-1-5-21-1177238915-1606980848-1060284298-1003/desktop.ini
+2009-03-04+22:44:10 (a) /S-1-5-21-1177238915-1606980848-1060284298-1003/INFO2
+2009-03-04+22:44:10 (c) /S-1-5-21-1177238915-1606980848-1060284298-1003
+2009-03-04+22:44:10 (c) /S-1-5-21-1177238915-1606980848-1060284298-1003/desktop.ini
+2009-03-04+22:44:10 (c) /S-1-5-21-1177238915-1606980848-1060284298-1003/INFO2
+2009-03-04+22:44:10 (m) /S-1-5-21-1177238915-1606980848-1060284298-1003
+2009-03-04+22:44:10 (m) /S-1-5-21-1177238915-1606980848-1060284298-1003/desktop.ini
+2009-03-04+22:44:10 (m) /S-1-5-21-1177238915-1606980848-1060284298-1003/INFO2
+
+$ cat /mnt/xpdisk/RECYCLER/
+                        S-1-5-21-1177238915-1606980848-1060284298-1003/desktop.ini
+[.ShellClassInfo]
+CLSID={645FF040-5081-101B-9F08-00AA002F954E}
+$
+\end{verbatim}
+
+The presence of a desktop.ini file, is used to store customizations in the appearance and behaviour of a folder when viewed.
+This \texttt{desktop.ini} file is not a file currently ``in the recycle bin'' waiting to be restored.
+Furthur information on the role of a desktop.ini file can be obtained from the official Documentation\footnote{See \url{http://msdn.microsoft.com/en-us/library/cc144102(VS.85).aspx}}.
+
+Since an empty recycle bin is not very interesting, we did experiments with a separate Windows XP installation.
+We downloaded some files to a directory using the Windows XP user profile ``godzilla''.
+Four files were then deleted and the contents of the recycle bin was examined. Firstly using the dumpster\_dive perl script and then afterwards, with a listing from the filesystem.
+Note that the listing missing parts of the full path of the deleted files which we cut to make the listing fit on the page.
+\begin{verbatim}
+ubuntu@ubuntu:~$ ./dumpster_dive.pl \
+/mnt/xpdisk/RECYCLER/S-1-5-21-583907252-616249376-725345543-1003/INFO2 2> /dev/null
+INDEX      DELETED TIME      DRIVE NUMBER      PATH      SIZE
+3      Mon Feb 22 2010 21:28:40      2
+%USERPROFILE%\My Documents\mypics\Mickey_Mouse1.gif      20480
+4      Mon Feb 22 2010 21:28:40      2
+%USERPROFILE%\My Documents\mypics\mickey_mouse_8.jpg      8194
+5      Mon Feb 22 2010 21:28:40      2
+%USERPROFILE%\My Documents\mypics\Mickey-Mouse.png      36864
+6      Mon Feb 22 2010 21:28:40      2
+%USERPROFILE%\My Documents\mypics\mickey-mouse-face.jpg      16384
+\end{verbatim}
+
+As can be seen in the timeline below, the deleted time from examining the INFO2 file and the created time for each of the files in the recycle bin match.
+The listing below is from the directory \texttt{ /mnt/xpdisk/RECYCLER}.
+\begin{verbatim}
+2010-02-22+21:28:40 (a) /S-1-5-21-583907252-616249376-725345543-1003
+2010-02-22+21:28:40 (c) /S-1-5-21-583907252-616249376-725345543-1003
+2010-02-22+21:28:40 (c) /S-1-5-21-583907252-616249376-725345543-1003/Dc3.gif
+2010-02-22+21:28:40 (c) /S-1-5-21-583907252-616249376-725345543-1003/Dc4.jpg
+2010-02-22+21:28:40 (c) /S-1-5-21-583907252-616249376-725345543-1003/Dc5.png
+2010-02-22+21:28:40 (c) /S-1-5-21-583907252-616249376-725345543-1003/Dc6.jpg
+2010-02-22+21:28:40 (m) /S-1-5-21-583907252-616249376-725345543-1003
+2010-02-22+21:29:23 (a) /S-1-5-21-583907252-616249376-725345543-1003/INFO2
+2010-02-22+21:29:23 (c) /S-1-5-21-583907252-616249376-725345543-1003/INFO2
+2010-02-22+21:29:23 (m) /S-1-5-21-583907252-616249376-725345543-1003/INFO2
+\end{verbatim}
+
+The timeline for the folder where the files were deleted from shows the files missing from these folders, and the modified time of the \texttt{Thumbs.db} file being a time previous to the deletion of the files.
+As a side note, in relation to our previous discussion of the \texttt{Thumbs.db} file this is furthur evidance that \texttt{Thumbs.db} is not modified by the operating system on deletion of files in the folder.
+
+The \texttt{find} below was performed in the \texttt{/mnt/xpdisk/Documents and Settings/godzilla/} folder
+\begin{verbatim}
+ubuntu@ubuntu:~$
+find My\ Documents/mypics/ -printf "%A+ (a) %p\n%T+ (m) %p\n%C+ (c) %p\n" | sort
+2010-02-22+15:15:56 (m) My Documents/mypics/wallpapers-mickey-mouse.jpg
+2010-02-22+15:16:07 (m) My Documents/mypics/mickey-mouse-heads.gif
+2010-02-22+15:18:52 (a) My Documents/mypics/Thumbs.db
+2010-02-22+15:24:21 (a) My Documents/mypics/mickey-mouse-heads.gif
+2010-02-22+15:24:21 (a) My Documents/mypics/wallpapers-mickey-mouse.jpg
+2010-02-22+15:24:21 (m) My Documents/mypics/Thumbs.db
+2010-02-22+15:25:55 (c) My Documents/mypics/mickey-mouse-heads.gif
+2010-02-22+15:25:55 (c) My Documents/mypics/Thumbs.db
+2010-02-22+15:25:55 (c) My Documents/mypics/wallpapers-mickey-mouse.jpg
+2010-02-22+21:28:40 (a) My Documents/mypics/
+2010-02-22+21:28:40 (c) My Documents/mypics/
+2010-02-22+21:28:40 (m) My Documents/mypics/
+\end{verbatim}
+This listing in combination with the one shown just before also shows, what traces "deletion" to the recycle bin is actually leaves:
+The folder, in which files are to be deleted, gets modified right before the files are created in some \texttt{RECYCLER} subfolder.
+The \texttt{INFO2} file is updated the latest.
+
+\section{Conclusion}
+
+%The information shown above can be summarized as follows:
+%The machine did this and that.
+%The user named ``foo'' was logged on.
+%It is, however, unclear whether the action can be attributed to the person because there is no evidence (yet) that it was actually the person that did the actions.
+
+A Windows XP \texttt{dd} disk image was used for this analysis and mounted readonly, artefacts examined during our investigation included, windows \texttt{.lnk} files, the \texttt{Thumbs.db} file and the Recycle Bin. A timeline was generated and was compared to the times obtained from each of these artefacts.
+
+Our case study begins with the analysis of Windows XP links, it was found that a Windows XP link consisted of a binary file instead of being a lightweight filesystem link.
+Information stored in these files included the hostname of the machine the link was created on, the path to the file, and the UUID and type of storage the actual file resided on.
+It was also noted thet the MAC times of link files in the recent folder were set to zero and that other link files from the start menu had MAC times set.
+We concluded that since the modified time saved in the \texttt{.lnk} file matches the mtime of the target file, we presume it represents the last time the \emph{target file} had been modified.
+
+When examining the \texttt{Thumbs.db} file, we found that, when a directory containing images is browsed with Windows Explorer, that a thumbnail cache file called \texttt{Thumbs.db} is generated and a thumbnail of all the images present in the directory is generated and saved in this file.
+When an image is removed from a directoy, that the thumbnail does not get removed from the \texttt{Thumbs.db file}.
+An additional ``folder summary'' image is updated when the images parent directory is viewed in Windows Explorer.
+During the analysis of our Windows disk image, it was noted that the ``folder summary'' thumbnail displayed four images, whereas the folder only contained two images, thus the parent folder was viewed when there were more than two images in the directory and was not viewed after images were deleted from the directory.
+
+It was found when examining the given Windows XP image, that the Recycle bin had been emptied and so a second Windows XP PC was used to examine the relationship between the filesystem and the INFO2 file.
+It was shown that when files are deleted that they get moved to a subfolder of the \texttt{/RECYCLE} folder and that the deleted files folder location and filename is stored in the INFO2 file in the recycle bin directory.
+
+As can be seen, during the normal day to day operation of Windows XP, there are multiple sources of information available to a forensic analyst for trying to piece together a picture of what might have happened on a PC.
+These sources of information, (i.e.\, the windows artefacts) are interdependant and related to the filesystem timeline and can be combined to generate a likely sequence of events.
+
+\section*{License}
+This work is licensed to the public under the Creative Commons Attribution-Non-Commercial-Share Alike 3.0 Germany License.
+\begin{center}\includegraphics{bin/by-nc-sa-eu.png}\end{center}
+
+
+\end{document}
+
