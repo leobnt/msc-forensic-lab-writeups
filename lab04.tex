@@ -1,0 +1,604 @@
+% !TEX TS-program = pdflatex
+% !TEX encoding = UTF-8 Unicode
+
+\documentclass[a4paper,
+    11pt,
+    normalheadings,
+%   parskip,
+    parindent,
+%   draft,
+%   final,
+%   bibgerm,
+%   german,
+    UKenglish,
+%   twoside,
+%   twocolum,
+%   openright,  % Kap.beginn immer rechts! (fkt. nur bei report, nicht bei article)
+    abstracton,
+    ]{scrartcl}
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc} % set input encoding (not needed with XeLaTeX)
+
+%%% Examples of Article customizations
+% These packages are optional, depending whether you want the features they provide.
+% See the LaTeX Companion or other references for full information.
+
+%%% PAGE DIMENSIONS
+\usepackage{geometry} % to change the page dimensions
+\geometry{a4paper} % or letterpaper (US) or a5paper or....
+% \geometry{margins=2in} % for example, change the margins to 2 inches all round
+% \geometry{landscape} % set up the page for landscape
+%   read geometry.pdf for detailed page layout information
+
+\usepackage{graphicx} % support the \includegraphics command and options
+
+\usepackage[parfill]{parskip} % Activate to begin paragraphs with an empty line rather than an indent
+
+%%% PACKAGES
+\usepackage{booktabs} % for much better looking tables
+\usepackage{array} % for better arrays (eg matrices) in maths
+\usepackage{paralist} % very flexible & customisable lists (eg. enumerate/itemize, etc.)
+\usepackage{verbatim} % adds environment for commenting out blocks of text & for better verbatim
+\usepackage{subfig} % make it possible to include more than one captioned figure/table in a single float
+% These packages are all incorporated in the memoir class to one degree or another...
+
+
+\usepackage[colorlinks,urlcolor=blue,plainpages=false]{hyperref}
+\usepackage{embedfile}        % Provides \embedfile[filename=foo, desc={bar}]{file}
+\usepackage{hyperxmp}         % To be have an XMP Data Stream f.e. to include the license
+
+% \usepackage{newcent}  % Different Font, looks bigger
+
+\usepackage{ifthen}
+
+\usepackage[
+    T1, % this is good for Umlauts
+%   OT1 % This breaks Umlauts
+       ]{fontenc}
+
+%%% HEADERS & FOOTERS
+\usepackage{fancyhdr} % This should be set AFTER setting up the page geometry
+\pagestyle{fancy} % options: empty , plain , fancy
+\renewcommand{\headrulewidth}{0pt} % customise the layout...
+\lhead{}\chead{}\rhead{}
+\lfoot{}\cfoot{\thepage}\rfoot{}
+
+%%% SECTION TITLE APPEARANCE
+\usepackage{sectsty}
+\allsectionsfont{\sffamily\mdseries\upshape} % (See the fntguide.pdf for font help)
+% (This matches ConTeXt defaults)
+
+%%% ToC (table of contents) APPEARANCE
+\usepackage[nottoc,notlof,notlot]{tocbibind} % Put the bibliography in the ToC
+\usepackage[titles,subfigure]{tocloft} % Alter the style of the Table of Contents
+\renewcommand{\cftsecfont}{\rmfamily\mdseries\upshape}
+\renewcommand{\cftsecpagefont}{\rmfamily\mdseries\upshape} % No bold!
+
+\usepackage{listings}
+
+%%% END Article customizations
+
+%%% The "real" document content comes below...
+
+% Title Page
+\newcommand{\mytitle}{Lab04: The FAT Filesystem}
+\subject{Report\\%
+    Forensics\\%
+    Summersemester 2010\\%
+    CA643\\%
+    Charlie Daly}
+\title{\mytitle{}}
+%\subtitle{}
+\author{
+    cand. Dipl. Inf. Tobias Müller <\href{mailto:muellet2@computing.dcu.ie?subject=ss10-forensic-lab01}{muellet2@}>, 59212333 \and
+    BSc. Anthony Walters <\href{mailto:waltera3@computing.dcu.ie?subject=ss10-forensic-lab01}{waltera3@}>, 59213102
+    }
+% \institute[Mathe - UniHH]{Fachbereich Mathematik\\
+%         Universit\"at Hamburg}
+% \logo{\includegraphics[height=0.5cm]{cinsects-blue}}
+% \titlegraphic{\includegraphics[width=1.5cm]{fsr-logo}}
+\date{\today}
+
+
+\hypersetup{
+        pdftitle={\mytitle{}},
+        pdfauthor={Tobias Mueller, Anthony Walters},
+        pdfsubject={Forensics},
+        pdfkeywords={uni, linux, windows, ca643, forensics, registry},
+        pdflang=en,
+        pdfcopyright={This work is licensed to the public under the Creative Commons Attribution-Non-Commercial-Share Alike 3.0 Germany License.},
+        pdflicenseurl={http://creativecommons.org/licenses/by-nc-sa/3.0/de/}
+}
+
+\hyphenation{Infor-mations-sys-teme}
+\hyphenation{\"{o}ko-logischen}
+
+\newcommand{\note}[1]{#1}
+\renewcommand{\comment}[1]{}
+\newcommand{\inlinequote}[1]{``\textit{#1}''}
+\newcommand{\FIXME}[1]{\mbox{}\marginpar{\footnotesize\raggedright\hspace{0pt}\color{red}\emph{#1}}}
+
+\begin{document}
+\selectlanguage{english}
+\maketitle
+
+
+\section{Introduction}
+The purpose of this lab is to get familiar with the FAT16 filesystem. We will examine the process of formatting a partition in Windows XP, both quick and full format options and compare the resulting disk images. We will then then outline the steps involved in recovering a deleted file in a filesystem and the information available to a forensic analyst to aid him in doing so. We will also explore the possibility of tuning the filesystem to match, or get close to the typical filesize that will be stored in order to reduce slackspace and improve disk usage.
+
+\section{FAT16 Structure}
+
+To begin exploring the structure of a FAT file system, an emply filesystem was created and formatted using \texttt{mkfs.msdos}. The filesystem we created contained mostly zeros along with the FAT filesystem, FAT table and directory information. The filesystem was examined under linux using command suck as \texttt{xxd} and \texttt{gvimdiff}. 
+\begin{verbatim}
+$ dd if=/dev/zero of=fat16.10m.empty.dd count=$((2*1024*10))
+$ mkfs.msdos -F16 fat16.10m.dd
+$ sudo mount -o loop,uid=1000 fat16.10m.empty.dd mount
+$ df -B 512 mount/
+Filesystem         512B-blocks      Used Available Use% Mounted on
+/dev/loop2               20404         0     20404   0% mount
+\end{verbatim}
+You can see that the above filesystem was created using the sum 2*1024*10 which gives 20480 blocks (or sectors), but \texttt{df} displays only 20404 blocks free, so where have the missing 76 blocks gone? The reason for this is the partition or filesystem overhead in keeping track of files and directories. When you format a disk, a certain portion is kept for use by the disk's FAT and root directory. So after formatting, an empty disk will contain some data. We can explore this information using a hex viewer such as \texttt{xxd}. Below is the first few lines of the partition contents in hex and an explanation of their values.
+
+\begin{verbatim}
+$ xxd -a fat16.10m.empty.dd
+0000000: eb3c 906d 6b64 6f73 6673 0000 0204 0100  .<.mkdosfs......
+0000010: 0200 0200 50f8 1400 2000 4000 0000 0000  ....P... .@.....
+0000020: 0000 0000 0000 29ce 61aa 0020 2020 2020  ......).a..     
+
+Bytes   Description                                 Hex    Decimal
+11-12   Number of bytes per sector                  0x0200 (512)
+13      Number of sectors per cluster                 0x04 (4)
+14-15   Number of reserved sectors                  0x0001 (1)
+16      Number of FAT copies                          0x02 (2)
+17-18   Number of root directory entries            0x0200 (512)
+19-20   Total number of sectors in the filesystem   0x5000 (20480)
+22-23   Number of sectors per FAT                   0x0014 (20)
+\end{verbatim}
+
+We can see that the number of bytes per sector is 512 and the number of sectors per cluster is 4. The file allocation table in a FAT filesystem uses clusters as it's smallest allocation unit. So the maximum file size which will still occupy just one cluster is 512*4 which is 2048bytes.
+
+The FAT filesystem usually contains 2 FATs for keeping track of a file's physical location on the disk. Below we can see a number of entries in the FAT table. The FAT is basically a linked list which maps to physical clusters in the partitions data area, in this case each clusters is 4 sectors in size.
+
+The first two entries are reserved so we can see from the remaining entries that there are a total of three files currently present on the disk. 
+
+\begin{verbatim}
+0000200: f8ff ffff 0000 ffff 0500 ffff 0700 0800  ................
+0000210: ffff 0000 0000 0000 0000 0000 0000 0000  ................
+0000220: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+*
+0002a00: f8ff ffff 0000 ffff 0500 ffff 0700 0800  ................
+0002a10: ffff 0000 0000 0000 0000 0000 0000 0000  ................
+0002a20: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+\end{verbatim}
+
+The first FAT entry at position 0x0206 corresponds to the first cluster in the data area of the disk.  We can see at 0x0208 the second FAT entry file occupies two clusters and the third is three clusters in size. This is a fairly simple way of keeping track of files on disk, but could be wasteful in terms of disk space if you want to save a lot of small, (less than 2048byte) files. This can be further exacerbated if a larger partition is formatted using FAT, the bigger the disk, the more sectors you get per cluster. A better solution to this problem would be to use a filesystem more suited to storing many small files like reiserfs\footnote{\url{http://en.wikipedia.org/wiki/ReiserFS}}. Which would have a faster access time when accessing many small files. More research would need to be performed to measure it's impact of disk space optimization, but is out of the scope of this writeup.
+
+The final section on disk that we need to look at is the root directory section. Here we can see the names of out three files and also information such as creation time and modified time.
+\begin{verbatim}
+0005200: 4166 0069 006c 0065 0031 000f 00ed 2e00  Af.i.l.e.1......
+0005210: 7400 7800 7400 0000 ffff 0000 ffff ffff  t.x.t...........
+0005220: 4649 4c45 3120 2020 5458 5420 0000 3384  FILE1   TXT ..3.
+0005230: 6c3c 6c3c 0000 3384 6c3c 0300 0600 0000  l<l<..3.l<......
+0005240: 4c41 5247 4532 2020 5458 5420 0064 2185  LARGE2  TXT .d!.
+0005250: 6c3c 6c3c 0000 2185 6c3c 0400 b80b 0000  l<l<..!.l<......
+0005260: 4c41 5247 4533 2020 5458 5420 0064 3c85  LARGE3  TXT .d<.
+0005270: 6c3c 6c3c 0000 3c85 6c3c 0600 8813 0000  l<l<..<.l<......
+\end{verbatim}
+
+\section{Disk Formatting in windows}
+
+In this section we will explore the formatting technique used by Windows XP to see which parts of the disk get overwritten when formatting first using a quick format and then when using a full format. The object of this exercise is to see what information remains on the disk after formatting in windows, and therefore if it would then be recoverable.
+
+Initially, we initially tried to create four partitions in linux and format them in windows, but ran into problems in windows, where it would not format a partition other than the first one on a removable device. So we decided to create and format the partitions from the windows XP Disk Management utility found in Administrative Tools, but again windows would not let us create multiple partitions. With Windows not being cooperative,  a single 10M partition was repeatedly removed and created on the USB device.
+
+We used a 512MB compact flash card to perform our tests to create the 10MB partition. We initially filled the disk with zeros so as to give us a nice clean disk to generate our first image. This will be the baseline image which we will compare to later generated disk images
+
+\subsection{Exploring the Windows Full Format Operation}
+To start with a disk was prepared by writing zeros to the disk, to provide us with a known initial state of the disk.
+
+\begin{verbatim}
+dd if=/dev/zero of=/dev/sdd
+xxd -a /dev/sdd 
+0000000: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+\end{verbatim}
+
+Then, a partition was created in linux, and marked as being of type FAT16.
+\begin{verbatim}
+# fdisk /dev/sdd
+Disk /dev/sdd: 519 MB, 519192576 bytes
+16 heads, 62 sectors/track, 1022 cylinders
+Units = cylinders of 992 * 512 = 507904 bytes
+Disk identifier: 0xcd768033
+
+   Device Boot      Start         End      Blocks   Id  System
+/dev/sdd1               1          21       10385    e  W95 FAT16 (LBA)
+\end{verbatim}
+
+The partition was then formatted in Windows XP using the full format option and an image of the disk was created.
+\begin{verbatim}
+# dd if=/dev/sdd1 of=1.clean.fullformat.dd
+20770+0 records in
+20770+0 records out
+10634240 bytes (11 MB) copied, 11.0868 s, 959 kB/s
+\end{verbatim}
+
+This partition was then deleted from the flash card and was then recreated as before, but this time the instead of the disk starting out containing zeros, the disk contained the hex character 0xFF. What we would like to see is that after formatting in windows, we would like to see this time is a partition image similar to the previously generated one. i.e. the 0xFF's being overwritten by the windows format and disappearing from the data area. We will explore the results below.
+
+The disk was firstly prepared with the repeating pattern 0xFF.
+\begin{verbatim}
+# dcfldd pattern=FF of=/dev/sdd
+\end{verbatim}
+
+The partition was created as before. 
+\begin{verbatim}
+/dev/sdd1               1          21       10385    e  W95 FAT16 (LBA)
+\end{verbatim}
+
+Then disk was again formatted using the Windows full format option in Windows XP. Again an image of the resulting disk was made using \texttt{dd}.
+
+\begin{verbatim}
+# dd if=/dev/sdd1 of=2.dirty.fullformat.dd
+20770+0 records in
+20770+0 records out
+10634240 bytes (11 MB) copied, 12.2279 s, 870 kB/s
+\end{verbatim}
+
+When comparing these two images, it was found that these images do in fact differ in the following ways:
+
+The data area on our second image which started out containing 0xFF still contains these hex numbers, while the disk starting with 0x00's still contains 0x00's in the data area. We can deduce that the data area was untouched during a full format using the FAT filesystem under Windows XP. This is especially interesting form a forensics point of view in that all the previously stored data on a disk will still remain on the disk after a full format in Windows XP.
+
+It is worth mentioning that the output of \texttt{fsstat} on these two images were identical which further adds validity to this test.
+
+Another thing to note with these images is that Windows decided to format the disks using FAT12, presumably because of the small size of these testing partitions.
+
+Due to these results, and out of interest, one more test was performed; a \emph{quick format} of a disk starting out containing the bit pattern 0xFF. We then compared this image to the one starting out with 0xFFs which was formatted using a full format. There were minor differences in these two images such as the timestamp associated with the root directory. 
+
+Full format image
+\begin{verbatim}
+0003000: 4e45 5720 564f 4c55 4d45 2008 0000 0000  NEW VOLUME .....
+0003010: 0000 0000 0000 9d6c 6c3c 0000 0000 0000  .......ll<......
+\end{verbatim}
+
+Quick format image
+\begin{verbatim}
+0003000: 4e45 5720 564f 4c55 4d45 2008 0000 0000  NEW VOLUME .....
+0003010: 0000 0000 0000 1c75 6c3c 0000 0000 0000  .......ul<......
+\end{verbatim}
+
+But again the data sectors remained untouched. This leads us to the question of what exactly the ``full format'' checkbox in Windows actually does and why is this checkbox even there when formatting a FAT filesystem. It also confirms that from the point of view of someone who wants to remove data from a disk, that a full format is not enough. 
+
+From a forensics data recovery point of view, this is good news. Reconstruction of deleted data is possible from a newly formatted disk using \texttt{dd} using techniques explained in the section below ``File Recovery''.
+
+On a side note, the proper way to remove data from a disk would be to use \texttt{dd} or \texttt{shred} similar to this.
+
+\begin{verbatim}
+dd if=/dev/urandom of=/dev/sdd
+\end{verbatim}
+
+\section{File Recovery}
+\subsection{Simple File Recovery Example}
+In this example we will create 2 small files in a newly formatted FAT16 filesystem, make a copy of the disk image and delete a file from the copy. We will then compare the two disk two disk images using \texttt{gvimdiff} to uncover clues which enable us to recover the deleted file.
+
+\begin{verbatim}
+dd if=/dev/zero of=1.empty.fat16.10m.dd count=$((2*1024*10))
+mkfs.msdos -F16 2.formatted.fat16.10m.dd 
+.
+.
+echo "This is file1.txt." > mount/file1.txt
+echo "This is file2.txt." > mount/file2.txt
+\end{verbatim}
+One of the files was then deleted.
+
+An easy and quick way to view deleted files is to use the sleuthkit\footnote{\url{http://www.sleuthkit.org/sleuthkit/index.php}} command line utility \texttt{fls} with the \texttt{-d} switch to display deleted files only. In this case, the output below gives one file deleted.
+\begin{verbatim}
+$ fls -d 4.f1del.fat16.10m.dd 
+r/r * 4:	file1.txt
+\end{verbatim}
+
+\texttt{istat} can also be used to get even more information about the deleted file.
+\begin{verbatim}
+$ istat -b 4.f1del.fat16.10m.dd 4
+Directory Entry: 4
+Not Allocated
+File Attributes: File, Archive
+Size: 19
+Name: _ILE1.TXT
+
+Directory Entry Times:
+Written:	Thu Mar 11 12:36:26 2010
+Accessed:	Thu Mar 11 00:00:00 2010
+Created:	Thu Mar 11 12:36:26 2010
+
+Sectors:
+77 0 0 0 
+\end{verbatim}
+
+We noted that the two file contents were written to two separate clusters at the start of the data area and when the first file was deleted the the following changes to the filesystem occurred.
+
+In the master and backup FAT tables, a cluster was changed from being allocated \texttt{ffff} to being unallocated \texttt{0000}.
+
+This is the FAT before file1.txt was deleted.
+\begin{verbatim}
+0000200: f8ff ffff 0000 ffff ffff 0000 0000 0000 
+0002a00: f8ff ffff 0000 ffff ffff 0000 0000 0000 
+\end{verbatim}
+
+This is the FAT after file1.txt was deleted.
+\begin{verbatim}
+0000200: f8ff ffff 0000 0000 ffff 0000 0000 0000
+0002a00: f8ff ffff 0000 0000 ffff 0000 0000 0000 
+\end{verbatim}
+
+Another change was made to the root directory entry. The file file1.txt was marked as deleted by placing \texttt{0xe5} at the start of the record.
+
+The directory entries before file1.txt was deleted.
+\begin{verbatim}
+0005200: 4166 0069 006c 0065 0031 000f 00ed 2e00  Af.i.l.e.1......
+0005210: 7400 7800 7400 0000 ffff 0000 ffff ffff  t.x.t...........
+0005220: 4649 4c45 3120 2020 5458 5420 0064 8d64  FILE1   TXT .d.d
+0005230: 6b3c 6b3c 0000 8d64 6b3c 0300 1300 0000  k<k<...dk<......
+\begin{verbatim}
+\end{verbatim}
+
+The directory entries after file1.txt was deleted.
+\begin{verbatim}
+0005200: e566 0069 006c 0065 0031 000f 00ed 2e00  .f.i.l.e.1......
+0005210: 7400 7800 7400 0000 ffff 0000 ffff ffff  t.x.t...........
+0005220: e549 4c45 3120 2020 5458 5420 0064 8d64  .ILE1   TXT .d.d
+0005230: 6b3c 6b3c 0000 8d64 6b3c 0300 1300 0000  k<k<...dk<......
+\end{verbatim}
+
+Next we need to get some information about the disk layout and so the \texttt{fsstat} utility from sleuthkit was used.
+\begin{verbatim}
+$ fsstat 4.f1del.fat16.10m.dd 
+FILE SYSTEM INFORMATION
+--------------------------------------------
+File System Type: FAT16
+
+OEM Name: mkdosfs
+Volume ID: 0x32f4b44e
+Volume Label (Boot Sector):            
+Volume Label (Root Directory):
+File System Type Label: FAT16   
+
+Sectors before file system: 0
+
+File System Layout (in sectors)
+Total Range: 0 - 20479
+* Reserved: 0 - 0
+** Boot Sector: 0
+* FAT 0: 1 - 20
+* FAT 1: 21 - 40
+* Data Area: 41 - 20479
+** Root Directory: 41 - 72
+** Cluster Area: 73 - 20476
+** Non-clustered: 20477 - 20479
+
+METADATA INFORMATION
+--------------------------------------------
+Range: 2 - 327030
+Root Directory: 2
+
+CONTENT INFORMATION
+--------------------------------------------
+Sector Size: 512
+Cluster Size: 2048
+Total Cluster Range: 2 - 5102
+
+FAT CONTENTS (in sectors)
+--------------------------------------------
+81-84 (4) -> EOF
+\end{verbatim}
+
+We can see that sector zero is where the boot sector is. And the two FATs occupy sectors 1 to 40 inclusive.
+The root directory is sectors 41 to 72 and from sector 72 onwards is the data section, which is where our deleted file may be.
+
+It is worth pointing out at this stage that gvimdiff did not show any changes to the data section of the partition after deleting file1.txt and so the file contents of the deleted file remain on the disk. The root directory entry for our deleted file also has most of it's information intact. So putting it all together, we can deduce the following information:
+
+\begin{itemize}
+	\item The name of the file, minus the first character. In this case \texttt{ILE1 TXT}. Also the first character is still readable from the UTF encoded directory entry so in fact we have that too.
+	\item The last 4 bytes of the directory entry contains the length of the (deleted) file on disk. In this case it is \texttt{1300 0000}, which is in little endian format so it's 0x13 or 19 bytes.
+	\item The starting cluster of the deleted file \texttt{0300} so thats a starting cluster of 0x03.
+	\item the Data area starts at sector 73
+	\item FAT 0 starts at sector 1
+	\item FAT 1 starts at sector 21
+	\item Cluster size is 2048, so there are four sectors per cluster
+	\item bytes 14-15 from the boot sector give us the number of reserved Number of reserved sectors in the FAT, in this case it is one. As a side note, FAT32 uses 32.\footnote{\url{http://www.win.tue.nl/~aeb/linux/fs/fat/fat-1.html}}
+
+\end{itemize}
+
+With this information, we can work out that the file is located in sector 77 on the disk as shown below.
+You can also view the contents of the block where the deleted file1.txt resides, but output is on a block, or sector basis i.e. 512 bytes.
+\begin{verbatim}
+blkcat -h 4.f1del.fat16.10m.dd 77
+0	54686973 20697320 66696c65 312e7478 	This  is  file 1.tx 
+16	742e0a00 00000000 00000000 00000000 	t... .... .... .... 
+\end{verbatim}
+We can see the same information using \texttt{blkls}.
+\begin{verbatim}
+blkls 4.f1del.fat16.10m.dd 77-77
+\end{verbatim}
+
+We can then use \texttt{dd} copy the file directly from the disk. First we tell dd to use a block size of 1 byte, and then we can work out the skip parameter multiplying the actual disk block size, 512 by 77 to get 39424. This is done so that we can tell \texttt{dd} to copy a specific amount of bytes i.e. 19 bytes which is the size of the deleted file, using \texttt{count=19}
+
+\begin{verbatim}
+$ dd if=4.f1del.fat16.10m.dd skip=39424 bs=1 count=19 2> /dev/stdout > restored
+19+0 records in
+19+0 records out
+19 bytes (19 B) copied, 0.000615791 s, 30.9 kB/s
+$ more restored 
+This is file1.txt.
+\end{verbatim}
+
+With this technique we can read arbitrary bytes from the disk and could be used effectively to restore a fragmented file by concatenating the output from various \texttt{dd} commands. This technique can also be used effectively to recover information from cluster slack space.
+
+\section{Exploring Cluster and Sector Sizes}
+There is a relationship between between cluster, sector sizes which is worth exploring, the size of the files you are working with and the cluster size impacts directly on the amount of slack space in FAT16. We also wanted to test how many files the filesystem could hold using different sector and cluster formatting parameters.
+
+Our first attempt to fill the disk will lots of small files failed due to the fact that the root directory can only hold 256 file entries and cannot grow. The FAT table ended up with unused entries and subsequently so did the data area of the disk. We then created a subdirectory on the disk and used our script to fill up the disk with lots of small files in the subdirectory.
+
+Below is the bash script used for generating lots of small files.
+\begin{verbatim}
+    #!/bin/bash
+
+    CREATEPATH=mount2/subdir
+    i=1
+    echo "some stuff for file $i" > $CREATEPATH/file$i.txt
+    while [ "$?" -eq "0" ]
+    do
+        i=$((i+1))
+        echo "some stuff for file $i" > $CREATEPATH/file$i.txt
+    done
+    echo "Failed creating file number $i"
+\end{verbatim}
+
+\subsection{FAT16 using 512byte sectors, 4 sectors per cluster}
+We mounted a clean FAT16 image with four 512byte sectors per cluster to \texttt{mount2} and created a subdirectory on the filesystem.
+
+\begin{verbatim}
+sudo mount -o loop,uid=1000 1.fat16.10m.many.dd mount2
+mkdir mount2/subdir
+\end{verbatim}
+
+\texttt{sstat} gives us the following cluster and sector information about the mounted filesystem. You can see that we have 4 512byte sectors per cluster.
+\begin{verbatim}
+CONTENT INFORMATION
+--------------------------------------------
+Sector Size: 512
+Cluster Size: 2048
+Total Cluster Range: 2 - 5102
+\end{verbatim}
+
+Running the script created the files and stopped when the disk was full or an error occurred.
+\begin{verbatim}
+$ ./createfiles 
+./createfiles: line 10: echo: write error: No space left on device
+Failed creating file number 4947
+\end{verbatim}
+You can see that a total of 4946 files were created on the device, 
+
+When exploring the image with \texttt{xxd} we found that as the directory entries grew for the \texttt{subdir} folder, it consumed clusters in the data area on a regular basis, as can be seen from this portion of the FAT.
+
+\begin{verbatim}
+00003d0: ffff 0a01 ffff ffff ffff ffff ffff ffff  ................
+00003e0: ffff ffff ffff ffff ffff ffff ffff ffff  ................
+00003f0: ffff ffff ffff ffff ffff ffff ffff ffff  ................
+0000400: ffff ffff ffff ffff ffff ffff ffff ffff  ................
+0000410: ffff ffff 2b01 ffff ffff ffff ffff ffff  ....+...........
+0000420: ffff ffff ffff ffff ffff ffff ffff ffff  ................
+0000430: ffff ffff ffff ffff ffff ffff ffff ffff  ................
+0000440: ffff ffff ffff ffff ffff ffff ffff ffff  ................
+0000450: ffff ffff ffff 4c01 ffff ffff ffff ffff  ......L.........
+\end{verbatim}
+
+We can also see that there is a large amount of slack space between files. This is due to the fact that we are writing small files into a comparatively large disk cluster area.
+
+\begin{verbatim}
+09fea00: 736f 6d65 2073 7475 6666 2066 6f72 2066  some stuff for f
+09fea10: 696c 6520 3439 3434 0a00 0000 0000 0000  ile 4944........
+09fea20: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+*
+09ff200: 736f 6d65 2073 7475 6666 2066 6f72 2066  some stuff for f
+09ff210: 696c 6520 3439 3435 0a00 0000 0000 0000  ile 4945........
+09ff220: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+*
+09ffff0: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+\end{verbatim}
+
+We can conclude that in a scenario, where small and large files get written interchangeably, there is a possibility of recovering portions of the larger files in a cluster occupied with a smaller file, using techniques similar to the previously described ``recovering a deleted file'' using \texttt{dd}.
+
+
+\subsection{FAT16 using 512byte sectors, 1 sector per cluster}
+
+Given the amount of slack space we had in the previous example, we wanted to make an improvement on the  physical disk usage efficiency for our partition. We decided to resize our clusters and sectors to suit the data being stored. We re-formated the disk so that the cluster size matches the sector size, thereby hopefully giving us four times the number of usable clusters in the filesystem. During our experimentation, unfortunately, we were not able to make a filesystem with a smaller sector size than 512 bytes using \texttt{mkfs.msdos} and so this is the best we could do to reduce slack space.
+
+\begin{verbatim}
+mkfs.msdos -s 1 -S 512 fat16.10m.smallc.dd
+\end{verbatim}
+
+\texttt{sstat} gives us the following information about the filesystem.
+\begin{verbatim}
+CONTENT INFORMATION
+--------------------------------------------
+Sector Size: 512
+Cluster Size: 512
+Total Cluster Range: 2 - 20288
+\end{verbatim}
+
+We then ran our file creating script on this filesystem.
+\begin{verbatim}
+$ ./createfiles 
+./createfiles: line 10: echo: write error: No space left on device
+Failed creating file number 18033
+\end{verbatim}
+
+We can see that we managed to create a total of 18032 files which is a marked improvement on the previous test, just from adjusting the number of sectors per cluster. 
+
+At first glace you could assume that you will get four times the number of files into this new filesystem (i.e. 19788), but we actually got a little less than this. This can be explained by the fact that the disk needs to allocate clusters to store the directory entries for each file in the directory.
+
+Again the FAT table looks similar to the previous example and you can see the linked list of clusters (0b, 14, 1d, 26, 2f) holding the directory file entries below. 
+\begin{verbatim}
+0000200: f8ff ffff ffff 0b00 ffff ffff ffff ffff  ................
+0000210: ffff ffff ffff 1400 ffff ffff ffff ffff  ................
+0000220: ffff ffff ffff ffff 1d00 ffff ffff ffff  ................
+0000230: ffff ffff ffff ffff ffff 2600 ffff ffff  ..........&.....
+0000240: ffff ffff ffff ffff ffff ffff 2f00 ffff  ............/...
+0000250: ffff ffff ffff ffff ffff ffff ffff 3800  ..............8.
+\end{verbatim}
+
+By reducing the number of sectors per cluster we have markedly reduced the amount of slack space on the partition and improved the storage efficiency. But as you can see from the listing below, with zeros included for emphasis, there is still a large amount of slack space compared to the data we are storing in each file.
+
+\begin{verbatim}
+001e7f0: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+001e800: 736f 6d65 2073 7475 6666 2066 6f72 2066  some stuff for f
+001e810: 696c 6520 3435 0a00 0000 0000 0000 0000  ile 45..........
+001e820: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+001e830: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+001e840: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+001e850: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+001e860: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+001e870: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+001e880: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+001e890: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+001e8a0: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+001e8b0: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+001e8c0: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+001e8d0: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+001e8e0: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+001e8f0: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+001e900: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+001e910: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+001e920: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+001e930: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+001e940: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+001e950: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+001e960: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+001e970: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+001e980: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+001e990: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+001e9a0: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+001e9b0: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+001e9c0: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+001e9d0: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+001e9e0: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+001e9f0: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+001ea00: 736f 6d65 2073 7475 6666 2066 6f72 2066  some stuff for f
+001ea10: 696c 6520 3436 0a00 0000 0000 0000 0000  ile 46..........
+001ea20: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+\end{verbatim}
+
+Slack space and disk usage efficiency is a problem with FAT32 and filesystems in general. Especially as disk sizes get bigger. So careful consideration needs to be taken on your choice of filesystem when you know you will be storing multiple small files. For example the disk efficiency in the scenario of a Web Proxy server, which will typically cache multiple small files during normal operation, the FAT filesystem would probably not be a good choice of filesystem, both in terms of file seek time and disk usage/slack space. Careful research needs to be performed in to choose the best filesystem for a particular task or function.
+
+\section{Conclusion}
+In this report we described the operation of a FAT16 filesystem in general.
+
+We explored a method of finding and recovering deleted files from a FAT16 filesystem using \texttt{dd}. It was also noted that these methods can also be used to recover data from slack space on a FAT formatted partition.
+
+We explored the quick format and full format functionality provided in Windows XP and noticed that from a forensics point of view, a full or quick formatted disk only makes changes to the file allocation table  and does not touch the data area of the disk. This makes it possible to recover data from a newly formatted FAT disk.
+
+We noted that a change in the number of sectors per cluster improves disk efficiency when storing small files and that fewer sectors per cluster helps to reduce slack space on a per cluster basis. It is worth noting here that with larger disk sizes, reducing the number of sectors per cluster may not be possible.
+
+
+
+\end{document}
+
