@@ -1,0 +1,414 @@
+% !TEX TS-program = pdflatex
+% !TEX encoding = UTF-8 Unicode
+
+\documentclass[a4paper,
+    11pt,
+    normalheadings,
+%   parskip,
+    parindent,
+%   draft,
+%   final,
+%   bibgerm,
+%   german,
+    UKenglish,
+%   twoside,
+%   twocolum,
+%   openright,  % Kap.beginn immer rechts! (fkt. nur bei report, nicht bei article)
+    abstracton,
+    ]{scrartcl}
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc} % set input encoding (not needed with XeLaTeX)
+
+%%% Examples of Article customizations
+% These packages are optional, depending whether you want the features they provide.
+% See the LaTeX Companion or other references for full information.
+
+%%% PAGE DIMENSIONS
+\usepackage{geometry} % to change the page dimensions
+\geometry{a4paper} % or letterpaper (US) or a5paper or....
+% \geometry{margins=2in} % for example, change the margins to 2 inches all round
+% \geometry{landscape} % set up the page for landscape
+%   read geometry.pdf for detailed page layout information
+
+\usepackage{graphicx} % support the \includegraphics command and options
+
+\usepackage[parfill]{parskip} % Activate to begin paragraphs with an empty line rather than an indent
+
+%%% PACKAGES
+\usepackage{booktabs} % for much better looking tables
+\usepackage{array} % for better arrays (eg matrices) in maths
+\usepackage{paralist} % very flexible & customisable lists (eg. enumerate/itemize, etc.)
+\usepackage{verbatim} % adds environment for commenting out blocks of text & for better verbatim
+\usepackage{subfig} % make it possible to include more than one captioned figure/table in a single float
+% These packages are all incorporated in the memoir class to one degree or another...
+
+
+\usepackage[colorlinks,urlcolor=blue,plainpages=false]{hyperref}
+\usepackage{embedfile}        % Provides \embedfile[filename=foo, desc={bar}]{file}
+\usepackage{hyperxmp}         % To be have an XMP Data Stream f.e. to include the license
+
+% \usepackage{newcent}  % Different Font, looks bigger
+
+\usepackage{ifthen}
+
+\usepackage[
+    T1, % this is good for Umlauts
+%   OT1 % This breaks Umlauts
+       ]{fontenc}
+
+%%% HEADERS & FOOTERS
+\usepackage{fancyhdr} % This should be set AFTER setting up the page geometry
+\pagestyle{fancy} % options: empty , plain , fancy
+\renewcommand{\headrulewidth}{0pt} % customise the layout...
+\lhead{}\chead{}\rhead{}
+\lfoot{}\cfoot{\thepage}\rfoot{}
+
+%%% SECTION TITLE APPEARANCE
+\usepackage{sectsty}
+\allsectionsfont{\sffamily\mdseries\upshape} % (See the fntguide.pdf for font help)
+% (This matches ConTeXt defaults)
+
+%%% ToC (table of contents) APPEARANCE
+\usepackage[nottoc,notlof,notlot]{tocbibind} % Put the bibliography in the ToC
+\usepackage[titles,subfigure]{tocloft} % Alter the style of the Table of Contents
+\renewcommand{\cftsecfont}{\rmfamily\mdseries\upshape}
+\renewcommand{\cftsecpagefont}{\rmfamily\mdseries\upshape} % No bold!
+
+\usepackage{listings}
+
+%%% END Article customizations
+
+%%% The "real" document content comes below...
+
+% Title Page
+\newcommand{\mytitle}{Lab05: The NTFS Filesystem}
+\subject{Report\\%
+    Forensics\\%
+    Summersemester 2010\\%
+    CA643\\%
+    Charlie Daly}
+\title{\mytitle{}}
+%\subtitle{}
+\author{
+    cand. Dipl. Inf. Tobias Müller <\href{mailto:muellet2@computing.dcu.ie?subject=ss10-forensic-lab01}{muellet2@}>, 59212333 \and
+    BSc. Anthony Walters <\href{mailto:waltera3@computing.dcu.ie?subject=ss10-forensic-lab01}{waltera3@}>, 59213102
+    }
+% \institute[Mathe - UniHH]{Fachbereich Mathematik\\
+%         Universit\"at Hamburg}
+% \logo{\includegraphics[height=0.5cm]{cinsects-blue}}
+% \titlegraphic{\includegraphics[width=1.5cm]{fsr-logo}}
+\date{\today}
+
+
+\hypersetup{
+        pdftitle={\mytitle{}},
+        pdfauthor={Tobias Mueller, Anthony Walters},
+        pdfsubject={Forensics},
+        pdfkeywords={uni, linux, windows, ca643, forensics, registry},
+        pdflang=en,
+        pdfcopyright={This work is licensed to the public under the Creative Commons Attribution-Non-Commercial-Share Alike 3.0 Germany License.},
+        pdflicenseurl={http://creativecommons.org/licenses/by-nc-sa/3.0/de/}
+}
+
+\hyphenation{Infor-mations-sys-teme}
+\hyphenation{\"{o}ko-logischen}
+
+\newcommand{\note}[1]{#1}
+\renewcommand{\comment}[1]{}
+\newcommand{\inlinequote}[1]{``\textit{#1}''}
+\newcommand{\FIXME}[1]{\mbox{}\marginpar{\footnotesize\raggedright\hspace{0pt}\color{red}\emph{#1}}}
+
+\begin{document}
+\selectlanguage{english}
+\maketitle
+
+
+\section{Introduction}
+Write some overview of the NTFS filesystem and MFT operation here
+\url{http://msdn.microsoft.com/en-us/library/aa365230%28VS.85%29.aspx}
+
+
+\section{Images Creation}
+The filesystem images were created using
+We will be creating filesystem images and not disk images, so when using \texttt{fls} we don't have to use the \texttt{-o} byte offset flag.
+
+The images were created using \texttt{dd} similar to the following
+\begin{verbatim}
+$ sudo dd if=/dev/sdd1 of=0.ntfs.init.cleanb4format.dd
+208782+0 records in
+208782+0 records out
+106896384 bytes (107 MB) copied, 63.0711 s, 1.7 MB/s
+\end{verbatim}
+
+The images that were created are as follows
+\begin{verbatim}
+$ ls -l [0-9]*
+-rw-r--r-- 1 root root 106896384 2010-03-14 22:51 0.ntfs.init.cleanb4format.dd
+-rw-r--r-- 1 root root 106896384 2010-03-14 23:16 0.ntfs.init.dirtyb4format.dd
+-rw-r--r-- 1 root root 106896384 2010-03-15 11:02 1.ntfs.init.cleanformated.dd
+-rw-r--r-- 1 root root 106896384 2010-03-14 23:21 1.ntfs.init.dirtyformated.dd
+-rw-r--r-- 1 root root 106896384 2010-03-15 11:38 2.ntfs.onesmallfile.dd
+-rw-r--r-- 1 root root 106896384 2010-03-15 11:46 3.ntfs.2files.dd
+-rw-r--r-- 1 root root 106896384 2010-03-15 12:02 4.ntfs.smalldeleted.dd
+-rw-r--r-- 1 root root 106896384 2010-03-15 12:06 5.ntfs.subdir.dd
+-rw-r--r-- 1 root root 106896384 2010-03-15 12:09 6.ntfs.file3.dd
+-rw-r--r-- 1 root root 106896384 2010-03-15 13:18 7.ntfs.altfile3.dd
+-rw-r--r-- 1 root root 106896384 2010-03-15 13:21 8.ntfs.notepad.dd
+-rw-r--r-- 1 root root 106896384 2010-03-15 13:24 9.ntfs.notepaddel.dd
+\end{verbatim}
+
+You will notice that there are two initial images and two formatted images. This was done so as to produce newly formatted images, one where the disk could have contained data and the other where it started out with all zero's. The following commands were used to change the starting bit pattern for a partition.
+
+\begin{verbatim}
+$ sudo dcfldd pattern=FF of=/dev/sdd1
+$ sudo dcfldd pattern=00 of=/dev/sdd1
+\end{verbatim}
+
+Images 2 to 9 all used the clean formatted (i.e. starting with zeroed disk image) as a starting point.
+
+Below is a description of the images \FIXME{take me out, this is maybe too much detail and will be covered in the rest of the report and the table format is fecked up}
+
+\begin{tabular*}{0.75\textwidth}{@{\extracolsep{\fill}}| l | l |}
+\hline
+0.ntfs.init.cleanb4format.dd & A completely zeroed out partition \\ \hline
+0.ntfs.init.dirtyb4format.dd & A partition containing the bit pattern 0xFF the whole way through\\ \hline
+1.ntfs.init.cleanformated.dd & Newly formatted partition using the zeroed out image as a starting point\\ \hline
+1.ntfs.init.dirtyformated.dd & A newly formatted NTFS partition using the 0xFF bit pattern partition as a starting point\\ \hline
+2.ntfs.onesmallfile.dd & NTFS partition which contains a small file test.txt\\ \hline
+3.ntfs.2files.dd & NTFS partition which contains one small and one large file\\ \hline
+4.ntfs.smalldeleted.dd & The small file was deleted, the large one remains.\\ \hline
+5.ntfs.subdir.dd & Subdirectory called \texttt{subdir} was created\\ \hline
+6.ntfs.file3.dd & The file \texttt{file3.txt} was created in \texttt{subdir}\\ \hline
+7.ntfs.altfile3.dd & \texttt{file3.txt} had an alternate data stream added to it\\ \hline
+8.ntfs.notepad.dd & \texttt{notepad.exe} was copied into \texttt{subdir}\\ \hline
+9.ntfs.notepaddel.dd & \texttt{notepad.exe} was deleted from the filesystem\\
+\hline
+\end{tabular*}
+
+
+\section{NTFS Structure and Behavior}
+In this section we will be analyzing the images generated above, primarily using the tools provided by sleuthkit\footnote{\url{http://www.sleuthkit.org/sleuthkit/index.php}}. While we can analyze some parts of the disk effectively using a hex viewer, this method quickly become complicated when looking at the MFT which is effectively a file itself and is there susceptible to fragmentation as with any other file.
+All the images we will be analyzing will be 100MB in size unless otherwise stated.
+
+\subsection{Inital Format Image Analysis: 1.ntfs.init.cleanformated.dd }
+While this image is not too exciting, we can note some initial information about the NTFS partition using the tools provided by sleuthkit.
+
+\begin{verbatim}
+$ fsstat 1.ntfs.init.cleanformated.dd
+FILE SYSTEM INFORMATION
+--------------------------------------------
+File System Type: NTFS
+Volume Serial Number: 86F05FD3F05FC857
+OEM Name: NTFS
+Volume Name: New Volume
+Version: Windows XP
+
+METADATA INFORMATION
+--------------------------------------------
+First Cluster of MFT: 69594
+First Cluster of MFT Mirror: 104390
+Size of MFT Entries: 1024 bytes
+Size of Index Records: 4096 bytes
+Range: 0 - 32
+Root Directory: 5
+
+CONTENT INFORMATION
+--------------------------------------------
+Sector Size: 512
+Cluster Size: 512
+Total Cluster Range: 0 - 208780
+Total Sector Range: 0 - 208780
+\end{verbatim}
+We can see that we have the following useful information about the disk.
+\begin{itemize}
+        \item Sector size is 512 bytes
+        \item Cluster size is the same as sector size
+        \item First cluster of MFT is at cluster 69594, or byte 35632128, roughly 35MB into the image.
+        \item The first cluster of the Mirror MFT is at cluster 104390, or byte 53447680, roughly 53MB into the image.
+\end{itemize}
+
+We can also have a look at the Master File Table in hex format. First we get the inode which contains the MFT using \texttt{fls}
+
+\begin{verbatim}
+$ fls 1.ntfs.init.cleanformated.dd
+.
+.
+r/r 0-128-1:        $MFT
+r/r 1-128-1:        $MFTMirr
+.
+.
+\end{verbatim}
+We can see that the Master file table and Master File Table Mirror occupy inodes zero and one. We can view each of these tables in a hex viewer as follows.
+\begin{verbatim}
+$ icat 1.ntfs.init.cleanformated.dd 0 | xxd | less
+0000000: 4649 4c45 3000 0300 3d0f 1000 0000 0000  FILE0...=.......
+0000010: 0100 0100 3800 0100 9801 0000 0004 0000  ....8...........
+0000020: 0000 0000 0000 0000 0600 0000 0000 0000  ................
+0000030: 0200 0000 0000 0000 1000 0000 6000 0000  ............`...
+0000040: 0000 1800 0000 0000 4800 0000 1800 0000  ........H.......
+0000050: 4e6a 0e5c 2ec4 ca01 4e6a 0e5c 2ec4 ca01  Nj.\....Nj.\....
+0000060: 4e6a 0e5c 2ec4 ca01 4e6a 0e5c 2ec4 ca01  Nj.\....Nj.\....
+.
+.
+\end{verbatim}
+The advantage of viewing the MFT in this was is that you can view a fragmented MFT as if it was one contiguous hex file. Other useful information can be displayed using sleuthkit's \texttt{istat}
+Interesting output produced by istat is displayed below
+\begin{verbatim}
+$ istat 1.ntfs.init.cleanformated.dd 0
+MFT Entry Header Values:
+Entry: 0        Sequence: 1
+.
+.
+$FILE_NAME Attribute Values:
+Flags: Hidden, System
+Name: $MFT
+Parent MFT Entry: 5         Sequence: 5
+Allocated Size: 16384           Actual Size: 16384
+.
+.
+Type: $BITMAP (176-5)   Name: N/A   Non-Resident   size: 8
+69593
+\end{verbatim}
+You can see here that the size of the MFT is 16k and that the name of this system folder has the name \$MFT.
+
+\subsection{Analysis of: 2.ntfs.onesmallfile.dd}
+The \texttt{fls} utility can be used to display the file and get it's inode information, we can see that the file is stored in inode 29, had a data type of 128 and a data stream number of 1.
+
+\begin{verbatim}
+$ fls 2.ntfs.onesmallfile.dd
+.
+r/r 29-128-1:        test.txt
+.
+\end{verbatim}
+We can extract this file from the filesystem using\texttt{icat} as follows.
+\begin{verbatim}
+$ icat 2.ntfs.onesmallfile.dd 29
+I'm sorry, Dave. I'm afraid I can't do that.
+\end{verbatim}
+
+
+We can also see that the text of the file is small enough to fit into the the MFT itself. Note that the hex values here are an offset from the start of the MFT.
+\begin{verbatim}
+$ icat 2.ntfs.onesmallfile.dd 0 | xxd | less
+0007400: 4649 4c45 3000 0300 d91b 1800 0000 0000  FILE0...........
+0007410: 0100 0100 3800 0100 5801 0000 0004 0000  ....8...X.......
+0007420: 0000 0000 0000 0000 0300 0000 1d00 0000  ................
+0007430: 0300 0000 0000 0000 1000 0000 6000 0000  ............`...
+0007440: 0000 0000 0000 0000 4800 0000 1800 0000  ........H.......
+0007450: 8043 51b9 32c4 ca01 ae9d 798f 33c4 ca01  .CQ.2.....y.3...
+0007460: ae9d 798f 33c4 ca01 ae9d 798f 33c4 ca01  ..y.3.....y.3...
+0007470: 2000 0000 0000 0000 0000 0000 0000 0000   ...............
+0007480: 0000 0000 0401 0000 0000 0000 0000 0000  ................
+0007490: 0000 0000 0000 0000 3000 0000 7000 0000  ........0...p...
+00074a0: 0000 0000 0000 0200 5200 0000 1800 0100  ........R.......
+00074b0: 0500 0000 0000 0500 8043 51b9 32c4 ca01  .........CQ.2...
+00074c0: 8043 51b9 32c4 ca01 8043 51b9 32c4 ca01  .CQ.2....CQ.2...
+00074d0: 8043 51b9 32c4 ca01 0000 0000 0000 0000  .CQ.2...........
+00074e0: 0000 0000 0000 0000 2000 0000 0000 0000  ........ .......
+00074f0: 0803 7400 6500 7300 7400 2e00 7400 7800  ..t.e.s.t...t.x.
+0007500: 7400 0000 0000 0000 8000 0000 4800 0000  t...........H...
+0007510: 0000 1800 0000 0100 2c00 0000 1800 0000  ........,.......
+0007520: 4927 6d20 736f 7272 792c 2044 6176 652e  I'm sorry, Dave.
+0007530: 2049 276d 2061 6672 6169 6420 4920 6361   I'm afraid I ca
+0007540: 6e27 7420 646f 2074 6861 742e 0000 0000  n't do that.....
+0007550: ffff ffff 8279 4711 0000 0000 0000 0000  .....yG.........
+\end{verbatim}
+
+
+We then inspected the partition image in raw hex using \texttt{xxd} and \texttt{less}.
+\begin{verbatim}
+xxd -a 2.ntfs.onesmallfile.dd | less
+\end{verbatim}
+We found that searching for entries with the filename test.txt (we searched for the unicode string t.e.s.t.) we found two entries, one in the MFT and one in the MFT mirror. It was interesting to note that the data contents of the file in question only resided in the MFT and was missing from the Mirror. Which raises the question of why the MFT Mirror is called a mirror when it clearly isn't.
+
+
+
+\subsection{File deletion}
+
+
+
+\section{MFT and MFTMir}
+different when using icat and istat????
+
+\section{Deleted File Recovery}
+Use a fragmented file, the cluster runs should still be there
+
+Comment on when the mft entry gets overwritten. Is it still possible to recover the file?
+
+\section{Small File Creation}
+Compare to FAT test, also time taken.
+
+\section{Timeline Creation Re-visited}
+
+When looking at an ntfs filesystem, another way to produce a filesystem timeline is be to use the \texttt{fls} and \texttt{mactime} tools from sleuthkit. When \texttt{fls} is used with the \texttt{-m} flag, output is generated that \texttt{mactime} can process and display.
+
+When dealing with an image using the NTFS filesystem, these tools have the advantage over GNU \texttt{ls} tool for generating a timeline for the following reasons:
+
+\begin{itemize}
+        \item \texttt{fls} is Alternate data stream aware and so these will be included in the timeline
+        \item \texttt{fls} will also display entries marked as deleted from the MFT. This has the caveat that the entry has not been overwritten by windows during normal operation.
+\end{itemize}
+
+Here you can see a filesystem agnostic, generic way to make a filesystem timeline using GNU tools \texttt{find}, and \texttt{sort}
+\begin{verbatim}
+$ find mount/ -printf "%A+ (a) %p\n%T+ (m) %p\n%C+ (c) %p\n"
+          | sort > timeline2.txt
+\end{verbatim}
+
+Sleuthkit provides NTFS aware tools that can show deleted files and Alternate Data Streams such as \texttt{fls} to geterate some output for \texttt{mactime} to parse. A timeline can be generated as below.
+
+\begin{verbatim}
+$ fls -m "C:/" -r 4.ntfs.smalldeleted.dd > timelinetemp.txt
+$ mactime -b timelinetemp.txt > timeline1.txt
+\end{verbatim}
+
+Below you can see a portion of the timeline generated with \texttt{mactime} and \texttt{fls} which includes deleted files.
+
+\begin{verbatim}
+Mon Mar 15 2010 11:29:07       44 ...b -/rrwxrwxrwx
+         0        0        29-128-1 C:/test.txt (deleted)
+Mon Mar 15 2010 11:35:06       44 mac. -/rrwxrwxrwx
+         0        0        29-128-1 C:/test.txt (deleted)
+Mon Mar 15 2010 11:42:37    89603 ...b r/rrwxrwxrwx
+         0        0        30-128-4 C:/evil dead full script.txt
+Mon Mar 15 2010 11:42:52    89603 mac. r/rrwxrwxrwx
+         0        0        30-128-4 C:/evil dead full script.txt
+\end{verbatim}
+You can also see that we have yet another date format and way of representing data. There is a need for a common log format for forensic tools so as to allow easy integration of timelines generated by different tools and data sources.
+
+Another oddity is that each line is not timestamped, only the first occurrence of a line for the time in question and the rest of the entries in the timeline for that particular time have no timestamp. While this is not a big issue, personally i would prefer each line to be timestamped to table sorting with timelines generated from other sources.
+
+It is worth noting that we have access to the sleuthkit source under the GPL and so the behavior of these tools can be easily modified.
+
+\section{Alternate Data Streams}
+make 2 or more ADS's and look at mft.
+
+test if it honors the file access rights of the file, if it doesn't, as i suspect, then try to do some stuff to the system alternate data streams as a user, maybe the bad clusters one.
+
+\begin{verbatim}
+$ fls -r 7.ntfs.altfile3.dd | grep ':.*:'
+r/r 8-128-1:        $BadClus:$Bad
++ r/r 25-144-2:        $ObjId:$O
++ r/r 24-144-3:        $Quota:$O
++ r/r 24-144-2:        $Quota:$Q
++ r/r 26-144-2:        $Reparse:$R
+r/r 9-128-8:        $Secure:$SDS
+r/r 9-144-11:        $Secure:$SDH
+r/r 9-144-14:        $Secure:$SII
++ r/r 31-128-3:        file3.txt:lovesAlternate
+\end{verbatim}
+
+
+
+
+
+\section{Conclusion}
+
+\section*{License}
+This work is licensed to the public under the Creative Commons Attribution-Non-Commercial-Share Alike 3.0 Germany License.
+\begin{center}\includegraphics{bin/by-nc-sa-eu.png}\end{center}
+
+
+\end{document}
+
+
