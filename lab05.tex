@@ -140,13 +140,11 @@ $ sudo dd if=/dev/sdd1 of=0.ntfs.init.cleanb4format.dd
 106896384 bytes (107 MB) copied, 63.0711 s, 1.7 MB/s
 \end{verbatim}
 
-The images that were created are as follows
+The images that were created are:
 \begin{verbatim}
 $ ls -l [0-9]*
 -rw-r--r-- 1 root root 106896384 2010-03-14 22:51 0.ntfs.init.cleanb4format.dd
--rw-r--r-- 1 root root 106896384 2010-03-14 23:16 0.ntfs.init.dirtyb4format.dd
 -rw-r--r-- 1 root root 106896384 2010-03-15 11:02 1.ntfs.init.cleanformated.dd
--rw-r--r-- 1 root root 106896384 2010-03-14 23:21 1.ntfs.init.dirtyformated.dd
 -rw-r--r-- 1 root root 106896384 2010-03-15 11:38 2.ntfs.onesmallfile.dd
 -rw-r--r-- 1 root root 106896384 2010-03-15 11:46 3.ntfs.2files.dd
 -rw-r--r-- 1 root root 106896384 2010-03-15 12:02 4.ntfs.smalldeleted.dd
@@ -157,33 +155,28 @@ $ ls -l [0-9]*
 -rw-r--r-- 1 root root 106896384 2010-03-15 13:24 9.ntfs.notepaddel.dd
 \end{verbatim}
 
-You will notice that there are two initial images and two formatted images. This was done so as to produce newly formatted images, one where the disk could have contained data and the other where it started out with all zero's. The following commands were used to change the starting bit pattern for a partition.
+When making out images, an initial bitpattern of 0x00 was written to the partition to give us a standard clean starting point.
 
 \begin{verbatim}
-$ sudo dcfldd pattern=FF of=/dev/sdd1
 $ sudo dcfldd pattern=00 of=/dev/sdd1
 \end{verbatim}
 
-Images 2 to 9 all used the clean formatted (i.e. starting with zeroed disk image) as a starting point.
-
 Below is a description of the images \FIXME{take me out, this is maybe too much detail and will be covered in the rest of the report and the table format is fecked up}
 
-\begin{tabular*}{0.75\textwidth}{@{\extracolsep{\fill}}| l | l |}
-\hline
-0.ntfs.init.cleanb4format.dd & A completely zeroed out partition \\ \hline
-0.ntfs.init.dirtyb4format.dd & A partition containing the bit pattern 0xFF the whole way through\\ \hline
-1.ntfs.init.cleanformated.dd & Newly formatted partition using the zeroed out image as a starting point\\ \hline
-1.ntfs.init.dirtyformated.dd & A newly formatted NTFS partition using the 0xFF bit pattern partition as a starting point\\ \hline
-2.ntfs.onesmallfile.dd & NTFS partition which contains a small file test.txt\\ \hline
-3.ntfs.2files.dd & NTFS partition which contains one small and one large file\\ \hline
-4.ntfs.smalldeleted.dd & The small file was deleted, the large one remains.\\ \hline
-5.ntfs.subdir.dd & Subdirectory called \texttt{subdir} was created\\ \hline
-6.ntfs.file3.dd & The file \texttt{file3.txt} was created in \texttt{subdir}\\ \hline
-7.ntfs.altfile3.dd & \texttt{file3.txt} had an alternate data stream added to it\\ \hline
-8.ntfs.notepad.dd & \texttt{notepad.exe} was copied into \texttt{subdir}\\ \hline
-9.ntfs.notepaddel.dd & \texttt{notepad.exe} was deleted from the filesystem\\
-\hline
-\end{tabular*}
+
+\begin{description}
+    \item[\texttt{0.ntfs.init.cleanb4format.dd}] A completely zeroed out partition
+    \item[\texttt{1.ntfs.init.cleanformated.dd}] Newly formatted partition using the zeroed out image as a starting point
+    \item[\texttt{2.ntfs.onesmallfile.dd }] NTFS partition which contains a small file test.txt
+    \item[\texttt{3.ntfs.2files.dd}] NTFS partition which contains one small and one large file
+    \item[\texttt{4.ntfs.smalldeleted.dd}] The small file was deleted, the large one remains
+    \item[\texttt{5.ntfs.subdir.dd}] Subdirectory called \texttt{subdir} was created
+    \item[\texttt{6.ntfs.file3.dd}] The file \texttt{file3.txt} was created in \texttt{subdir}
+    \item[\texttt{7.ntfs.altfile3.dd}] \texttt{file3.txt} had an alternate data stream added to it
+    \item[\texttt{8.ntfs.notepad.dd}] \texttt{notepad.exe} was copied into \texttt{subdir}
+    \item[\texttt{9.ntfs.notepaddel.dd}] \texttt{notepad.exe} was deleted from the filesystem
+\end{description}
+
 
 
 \section{NTFS Structure and Behavior}
@@ -280,7 +273,7 @@ $ fls 2.ntfs.onesmallfile.dd
 r/r 29-128-1:        test.txt
 .
 \end{verbatim}
-We can extract this file from the filesystem using\texttt{icat} as follows.
+We can extract this file from the filesystem using \texttt{icat} as follows.
 \begin{verbatim}
 $ icat 2.ntfs.onesmallfile.dd 29
 I'm sorry, Dave. I'm afraid I can't do that.
@@ -322,25 +315,62 @@ xxd -a 2.ntfs.onesmallfile.dd | less
 We found that searching for entries with the filename test.txt (we searched for the unicode string t.e.s.t.) we found two entries, one in the MFT and one in the MFT mirror. It was interesting to note that the data contents of the file in question only resided in the MFT and was missing from the Mirror. Which raises the question of why the MFT Mirror is called a mirror when it clearly isn't.
 
 
+\subsection{File Recovery in NTFS}
+When a file is deleted in NTFS, the files entry in the MFT marks the file as deleted by flipping a ``in-use'' flag which makes the filesystem driver interprete that file as being ``deleted''\footnote{cmp.\, \url{http://www.codeproject.com/KB/files/NTFSUndelete.aspx}}.\FIXME{potentially show the differences}
+Since only one bit is flipped, this MFT still contains a lot of information about the deleted file, including its name, MAC times, and complete cluster runs which is very advantageous when dealing with fragmented files.
+This MFT entry, once marked as deleted, can be queried by sleuthkit tools and the whole file can be recovered easily.
+The filesystem can be queried as follows for deleted files:
+%
+\begin{verbatim}
+$ fls -d 4.ntfs.smalldeleted.dd
+-/r * 29-128-1:    test.txt
+\end{verbatim}
 
-\subsection{File deletion}
+We can see that the deleted file has an inode entry of 29 and so we can then recover the file using \texttt{icat}.
+\begin{verbatim}
+$ icat 4.ntfs.smalldeleted.dd 29-128-1
+I'm sorry, Dave. I'm afraid I can't do that.
+\end{verbatim}
+
+\FIXME{Comment on when the mft entry gets overwritten. Is it still possible to recover the file?}
+
+Remembering the disk image we used to investigate during the last reports, we can use this knowledge to potentially recover images that we identified of being deleted:
+\begin{verbatim}
+$ fls -rd  XP-4G.ntfs.dd | grep luvduc_lg
+-/r * 13279-128-4:    .../89IZKPI7/luvduc_lg[1].jpg
+$ icat XP-4G.ntfs.dd 13279-128-4 | display
+\end{verbatim}
+% \includegraphics[width=\textwidth]{bin/lab03-luvduc_lg}
+\centering{\includegraphics[height=15em]{bin/lab03-luvduc_lg}}\FIXME{Adjust heigth to fit on page}
 
 
+\section{Alternate Data Streams}
+An interesting feature in NTFS is the existance of alternate data streams or ``forks'' in which you can store additional data and have it associated with a particular file. Each file can have multiple data streams associated with it and can be queried using stream aware tools such as the ones provided by sleuthkit. It is worth noting here that when timelines where produced using \texttt{find} and \texttt{sort} that these alternate data streams were not captured. We can use \texttt{fls} and \texttt{grep} to display all the files which have alternate data streams as follows.
 
-\section{MFT and MFTMir}
-different when using icat and istat????
+\begin{verbatim}
+$ fls -r 7.ntfs.altfile3.dd | grep ':.*:'
+r/r 8-128-1:    $BadClus:$Bad
++ r/r 25-144-2:    $ObjId:$O
++ r/r 24-144-3:    $Quota:$O
++ r/r 24-144-2:    $Quota:$Q
++ r/r 26-144-2:    $Reparse:$R
+r/r 9-128-8:    $Secure:$SDS
+r/r 9-144-11:    $Secure:$SDH
+r/r 9-144-14:    $Secure:$SII
++ r/r 31-128-3:    file3.txt:lovesAlternate
+\end{verbatim}
 
-\section{Deleted File Recovery}
-Use a fragmented file, the cluster runs should still be there
+We can provide \texttt{icat} with the file inode number and stream number so that we can extract the contents of the stream.
 
-Comment on when the mft entry gets overwritten. Is it still possible to recover the file?
+\begin{verbatim}
+$ icat 7.ntfs.altfile3.dd 31-128-3
+"Alternate data is hiding here"
+\end{verbatim}
 
-\section{Small File Creation}
-Compare to FAT test, also time taken.
 
 \section{Timeline Creation Re-visited}
 
-When looking at an ntfs filesystem, another way to produce a filesystem timeline is be to use the \texttt{fls} and \texttt{mactime} tools from sleuthkit. When \texttt{fls} is used with the \texttt{-m} flag, output is generated that \texttt{mactime} can process and display.
+When looking at an NTFS filesystem, another way to produce a filesystem timeline is be to use the \texttt{fls} and \texttt{mactime} tools from sleuthkit. When \texttt{fls} is used with the \texttt{-m} flag, output is generated that \texttt{mactime} can process and display.
 
 When dealing with an image using the NTFS filesystem, these tools have the advantage over GNU \texttt{ls} tool for generating a timeline for the following reasons:
 
@@ -376,28 +406,9 @@ Mon Mar 15 2010 11:42:52    89603 mac. r/rrwxrwxrwx
 \end{verbatim}
 You can also see that we have yet another date format and way of representing data. There is a need for a common log format for forensic tools so as to allow easy integration of timelines generated by different tools and data sources.
 
-Another oddity is that each line is not timestamped, only the first occurrence of a line for the time in question and the rest of the entries in the timeline for that particular time have no timestamp. While this is not a big issue, personally i would prefer each line to be timestamped to table sorting with timelines generated from other sources.
+Another oddity is that each line is not timestamped, only the first occurrence of a line for the time in question and the rest of the entries in the timeline for that particular time have no timestamp. While this is not a big issue, personally it wouild be preferable for each line to be timestamped to enable combination with timelines generated from other sources.
 
-It is worth noting that we have access to the sleuthkit source under the GPL and so the behavior of these tools can be easily modified.
-
-\section{Alternate Data Streams}
-make 2 or more ADS's and look at mft.
-
-test if it honors the file access rights of the file, if it doesn't, as i suspect, then try to do some stuff to the system alternate data streams as a user, maybe the bad clusters one.
-
-\begin{verbatim}
-$ fls -r 7.ntfs.altfile3.dd | grep ':.*:'
-r/r 8-128-1:        $BadClus:$Bad
-+ r/r 25-144-2:        $ObjId:$O
-+ r/r 24-144-3:        $Quota:$O
-+ r/r 24-144-2:        $Quota:$Q
-+ r/r 26-144-2:        $Reparse:$R
-r/r 9-128-8:        $Secure:$SDS
-r/r 9-144-11:        $Secure:$SDH
-r/r 9-144-14:        $Secure:$SII
-+ r/r 31-128-3:        file3.txt:lovesAlternate
-\end{verbatim}
-
+It is worth noting that we have access to the sleuthkit source under the GPL and so the behavior of these tools can be modified.
 
 
 
