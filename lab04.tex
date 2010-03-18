@@ -128,7 +128,7 @@ The purpose of this lab is to get familiar with the FAT16 filesystem. We will ex
 
 \section{FAT16 Structure}
 
-To begin exploring the structure of a FAT file system, an emply filesystem was created and formatted using \texttt{mkfs.msdos}. The filesystem we created contained mostly zeros along with the FAT filesystem, FAT table and directory information. The filesystem was examined under linux using command suck as \texttt{xxd} and \texttt{gvimdiff}. 
+To begin exploring the structure of a FAT file system, an emply filesystem was created and formatted using \texttt{mkfs.msdos}. The filesystem we created contained mostly zeros along with the FAT filesystem, FAT table and directory information. The filesystem was examined under linux using command suck as \texttt{xxd} and \texttt{gvimdiff}.
 \begin{verbatim}
 $ dd if=/dev/zero of=fat16.10m.empty.dd count=$((2*1024*10))
 $ mkfs.msdos -F16 fat16.10m.dd
@@ -143,7 +143,7 @@ You can see that the above filesystem was created using the sum 2*1024*10 which 
 $ xxd -a fat16.10m.empty.dd
 0000000: eb3c 906d 6b64 6f73 6673 0000 0204 0100  .<.mkdosfs......
 0000010: 0200 0200 50f8 1400 2000 4000 0000 0000  ....P... .@.....
-0000020: 0000 0000 0000 29ce 61aa 0020 2020 2020  ......).a..     
+0000020: 0000 0000 0000 29ce 61aa 0020 2020 2020  ......).a..
 
 Bytes   Description                                 Hex    Decimal
 11-12   Number of bytes per sector                  0x0200 (512)
@@ -159,7 +159,7 @@ We can see that the number of bytes per sector is 512 and the number of sectors 
 
 The FAT filesystem usually contains 2 FATs for keeping track of a file's physical location on the disk. Below we can see a number of entries in the FAT table. The FAT is basically a linked list which maps to physical clusters in the partitions data area, in this case each clusters is 4 sectors in size.
 
-The first two entries are reserved so we can see from the remaining entries that there are a total of three files currently present on the disk. 
+The first two entries are reserved so we can see from the remaining entries that there are a total of three files currently present on the disk.
 
 \begin{verbatim}
 0000200: f8ff ffff 0000 ffff 0500 ffff 0700 0800  ................
@@ -198,7 +198,7 @@ To start with a disk was prepared by writing zeros to the disk, to provide us wi
 
 \begin{verbatim}
 dd if=/dev/zero of=/dev/sdd
-xxd -a /dev/sdd 
+xxd -a /dev/sdd
 0000000: 0000 0000 0000 0000 0000 0000 0000 0000  ................
 \end{verbatim}
 
@@ -229,7 +229,7 @@ The disk was firstly prepared with the repeating pattern 0xFF.
 # dcfldd pattern=FF of=/dev/sdd
 \end{verbatim}
 
-The partition was created as before. 
+The partition was created as before.
 \begin{verbatim}
 /dev/sdd1               1          21       10385    e  W95 FAT16 (LBA)
 \end{verbatim}
@@ -251,7 +251,7 @@ It is worth mentioning that the output of \texttt{fsstat} on these two images we
 
 Another thing to note with these images is that Windows decided to format the disks using FAT12, presumably because of the small size of these testing partitions.
 
-Due to these results, and out of interest, one more test was performed; a \emph{quick format} of a disk starting out containing the bit pattern 0xFF. We then compared this image to the one starting out with 0xFFs which was formatted using a full format. There were minor differences in these two images such as the timestamp associated with the root directory. 
+Due to these results, and out of interest, one more test was performed; a \emph{quick format} of a disk starting out containing the bit pattern 0xFF. We then compared this image to the one starting out with 0xFFs which was formatted using a full format. There were minor differences in these two images such as the timestamp associated with the root directory.
 
 Full format image
 \begin{verbatim}
@@ -265,7 +265,7 @@ Quick format image
 0003010: 0000 0000 0000 1c75 6c3c 0000 0000 0000  .......ul<......
 \end{verbatim}
 
-But again the data sectors remained untouched. This leads us to the question of what exactly the ``full format'' checkbox in Windows actually does and why is this checkbox even there when formatting a FAT filesystem. It also confirms that from the point of view of someone who wants to remove data from a disk, that a full format is not enough. 
+But again the data sectors remained untouched. This leads us to the question of what exactly the ``full format'' checkbox in Windows actually does and why is this checkbox even there when formatting a FAT filesystem. It also confirms that from the point of view of someone who wants to remove data from a disk, that a full format is not enough.
 
 From a forensics data recovery point of view, this is good news. Reconstruction of deleted data is possible from a newly formatted disk using \texttt{dd} using techniques explained in the section below ``File Recovery''.
 
@@ -281,7 +281,7 @@ In this example we will create 2 small files in a newly formatted FAT16 filesyst
 
 \begin{verbatim}
 dd if=/dev/zero of=1.empty.fat16.10m.dd count=$((2*1024*10))
-mkfs.msdos -F16 2.formatted.fat16.10m.dd 
+mkfs.msdos -F16 2.formatted.fat16.10m.dd
 .
 .
 echo "This is file1.txt." > mount/file1.txt
@@ -291,7 +291,7 @@ One of the files was then deleted.
 
 An easy and quick way to view deleted files is to use the sleuthkit\footnote{\url{http://www.sleuthkit.org/sleuthkit/index.php}} command line utility \texttt{fls} with the \texttt{-d} switch to display deleted files only. In this case, the output below gives one file deleted.
 \begin{verbatim}
-$ fls -d 4.f1del.fat16.10m.dd 
+$ fls -d 4.f1del.fat16.10m.dd
 r/r * 4:	file1.txt
 \end{verbatim}
 
@@ -310,7 +310,7 @@ Accessed:	Thu Mar 11 00:00:00 2010
 Created:	Thu Mar 11 12:36:26 2010
 
 Sectors:
-77 0 0 0 
+77 0 0 0
 \end{verbatim}
 
 We noted that the two file contents were written to two separate clusters at the start of the data area and when the first file was deleted the the following changes to the filesystem occurred.
@@ -319,14 +319,14 @@ In the master and backup FAT tables, a cluster was changed from being allocated 
 
 This is the FAT before file1.txt was deleted.
 \begin{verbatim}
-0000200: f8ff ffff 0000 ffff ffff 0000 0000 0000 
-0002a00: f8ff ffff 0000 ffff ffff 0000 0000 0000 
+0000200: f8ff ffff 0000 ffff ffff 0000 0000 0000
+0002a00: f8ff ffff 0000 ffff ffff 0000 0000 0000
 \end{verbatim}
 
 This is the FAT after file1.txt was deleted.
 \begin{verbatim}
 0000200: f8ff ffff 0000 0000 ffff 0000 0000 0000
-0002a00: f8ff ffff 0000 0000 ffff 0000 0000 0000 
+0002a00: f8ff ffff 0000 0000 ffff 0000 0000 0000
 \end{verbatim}
 
 Another change was made to the root directory entry. The file file1.txt was marked as deleted by placing \texttt{0xe5} at the start of the record.
@@ -350,16 +350,16 @@ The directory entries after file1.txt was deleted.
 
 Next we need to get some information about the disk layout and so the \texttt{fsstat} utility from sleuthkit was used.
 \begin{verbatim}
-$ fsstat 4.f1del.fat16.10m.dd 
+$ fsstat 4.f1del.fat16.10m.dd
 FILE SYSTEM INFORMATION
 --------------------------------------------
 File System Type: FAT16
 
 OEM Name: mkdosfs
 Volume ID: 0x32f4b44e
-Volume Label (Boot Sector):            
+Volume Label (Boot Sector):
 Volume Label (Root Directory):
-File System Type Label: FAT16   
+File System Type Label: FAT16
 
 Sectors before file system: 0
 
@@ -411,8 +411,8 @@ With this information, we can work out that the file is located in sector 77 on 
 You can also view the contents of the block where the deleted file1.txt resides, but output is on a block, or sector basis i.e. 512 bytes.
 \begin{verbatim}
 blkcat -h 4.f1del.fat16.10m.dd 77
-0	54686973 20697320 66696c65 312e7478 	This  is  file 1.tx 
-16	742e0a00 00000000 00000000 00000000 	t... .... .... .... 
+0	54686973 20697320 66696c65 312e7478 	This  is  file 1.tx
+16	742e0a00 00000000 00000000 00000000 	t... .... .... ....
 \end{verbatim}
 We can see the same information using \texttt{blkls}.
 \begin{verbatim}
@@ -426,7 +426,7 @@ $ dd if=4.f1del.fat16.10m.dd skip=39424 bs=1 count=19 2> /dev/stdout > restored
 19+0 records in
 19+0 records out
 19 bytes (19 B) copied, 0.000615791 s, 30.9 kB/s
-$ more restored 
+$ more restored
 This is file1.txt.
 \end{verbatim}
 
@@ -471,11 +471,11 @@ Total Cluster Range: 2 - 5102
 
 Running the script created the files and stopped when the disk was full or an error occurred.
 \begin{verbatim}
-$ ./createfiles 
+$ ./createfiles
 ./createfiles: line 10: echo: write error: No space left on device
 Failed creating file number 4947
 \end{verbatim}
-You can see that a total of 4946 files were created on the device, 
+You can see that a total of 4946 files were created on the device,
 
 When exploring the image with \texttt{xxd} we found that as the directory entries grew for the \texttt{subdir} folder, it consumed clusters in the data area on a regular basis, as can be seen from this portion of the FAT.
 
@@ -527,16 +527,16 @@ Total Cluster Range: 2 - 20288
 
 We then ran our file creating script on this filesystem.
 \begin{verbatim}
-$ ./createfiles 
+$ ./createfiles
 ./createfiles: line 10: echo: write error: No space left on device
 Failed creating file number 18033
 \end{verbatim}
 
-We can see that we managed to create a total of 18032 files which is a marked improvement on the previous test, just from adjusting the number of sectors per cluster. 
+We can see that we managed to create a total of 18032 files which is a marked improvement on the previous test, just from adjusting the number of sectors per cluster.
 
 At first glace you could assume that you will get four times the number of files into this new filesystem (i.e. 19788), but we actually got a little less than this. This can be explained by the fact that the disk needs to allocate clusters to store the directory entries for each file in the directory.
 
-Again the FAT table looks similar to the previous example and you can see the linked list of clusters (0b, 14, 1d, 26, 2f) holding the directory file entries below. 
+Again the FAT table looks similar to the previous example and you can see the linked list of clusters (0b, 14, 1d, 26, 2f) holding the directory file entries below.
 \begin{verbatim}
 0000200: f8ff ffff ffff 0b00 ffff ffff ffff ffff  ................
 0000210: ffff ffff ffff 1400 ffff ffff ffff ffff  ................
@@ -599,6 +599,9 @@ We explored the quick format and full format functionality provided in Windows X
 We noted that a change in the number of sectors per cluster improves disk efficiency when storing small files and that fewer sectors per cluster helps to reduce slack space on a per cluster basis. It is worth noting here that with larger disk sizes, reducing the number of sectors per cluster may not be possible.
 
 
+\section*{License}
+This work is licensed to the public under the Creative Commons Attribution-Non-Commercial-Share Alike 3.0 Germany License.
+\begin{center}\includegraphics{bin/by-nc-sa-eu.png}\end{center}
 
 \end{document}
 
