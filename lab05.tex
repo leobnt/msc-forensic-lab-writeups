@@ -36,6 +36,7 @@
 
 %%% PACKAGES
 \usepackage{booktabs} % for much better looking tables
+\usepackage{alltt} % provides alltt enviroment which allows \emph{}ed text
 \usepackage{array} % for better arrays (eg matrices) in maths
 \usepackage{paralist} % very flexible & customisable lists (eg. enumerate/itemize, etc.)
 \usepackage{verbatim} % adds environment for commenting out blocks of text & for better verbatim
@@ -97,14 +98,14 @@
 %         Universit\"at Hamburg}
 % \logo{\includegraphics[height=0.5cm]{cinsects-blue}}
 % \titlegraphic{\includegraphics[width=1.5cm]{fsr-logo}}
-\date{\today}
+\date{2009-03-19}
 
 
 \hypersetup{
         pdftitle={\mytitle{}},
         pdfauthor={Tobias Mueller, Anthony Walters},
         pdfsubject={Forensics},
-        pdfkeywords={uni, linux, windows, ca643, forensics, registry},
+        pdfkeywords={uni, linux, windows, ca643, forensics, filesystem, ntfs},
         pdflang=en,
         pdfcopyright={This work is licensed to the public under the Creative Commons Attribution-Non-Commercial-Share Alike 3.0 Germany License.},
         pdflicenseurl={http://creativecommons.org/licenses/by-nc-sa/3.0/de/}
@@ -125,8 +126,7 @@
 
 \section{Introduction}
 With Windows NT, Microsoft introduced a new filesystem that obsoleted FAT (which was covered in the last report) as was able to compete with ``HPFS'' which was used in OS/2, a Windows competing operating system.
-This ``New Technology FileSystem'' (\emph{NTFS}) finally enabled Windows users to have longer file names, to save the owner of a file, and other convenient features that OS/2 users had with HPFS as well as new features like encryption, saving metadata along with a file or soft- and hardlinks.
-
+This ``New Technology FileSystem'' (\emph{NTFS}) finally enabled Windows users to have longer file names, to save the owner of a file, and other convenient features that OS/2 users had with HPFS as well as new features like encryption, saving metadata along with a file, and  soft and hardlinks\footnote{cmp.\, \url{http://en.wikipedia.org/wiki/Comparison_of_file_systems}}.
 
 NTFS heart is the Master File Table (\emph{MFT}) which can be described as a more advaced FAT.
 Quoting the official (as always non-technical) documentation%
@@ -137,10 +137,10 @@ The NTFS file system contains a file called the master file table, or MFT. There
 
 
 \section{Images Creation}
-The filesystem images were created using
-We will be creating filesystem images and not disk images, so when using \texttt{fls} we don't have to use the \texttt{-o} byte offset flag.
+The filesystem images were created using a clean zeroed out partition (using \texttt{dd if=/dev/zero of=/dev/sdd1}) as a starting point to provide a filesystem which was not contaminated by the previous contents of the disk.
+We created partition images and not disk images, so when using \texttt{fls} we did not need to use the \texttt{-o} byte offset flag.
 
-The images were created using \texttt{dd} similar to the following
+The images were created using \texttt{dd} similar to the following:
 \begin{verbatim}
 $ sudo dd if=/dev/sdd1 of=0.ntfs.init.cleanb4format.dd
 208782+0 records in
@@ -163,15 +163,7 @@ $ ls -l [0-9]*
 -rw-r--r-- 1 root root 106896384 2010-03-15 13:24 9.ntfs.notepaddel.dd
 \end{verbatim}
 
-When making out images, an initial bitpattern of 0x00 was written to the partition to give us a standard clean starting point.
-
-\begin{verbatim}
-$ sudo dcfldd pattern=00 of=/dev/sdd1
-\end{verbatim}
-
-Below is a description of the images \FIXME{take me out, this is maybe too much detail and will be covered in the rest of the report and the table format is fecked up}
-
-
+Below is a description of the images which were generated for this report:
 \begin{description}
     \item[\texttt{0.ntfs.init.cleanb4format.dd}] A completely zeroed out partition
     \item[\texttt{1.ntfs.init.cleanformated.dd}] Newly formatted partition using the zeroed out image as a starting point
@@ -187,13 +179,13 @@ Below is a description of the images \FIXME{take me out, this is maybe too much 
 
 
 
-\section{NTFS Structure and Behavior}
-In this section we will be analyzing the images generated above, primarily using the tools provided by sleuthkit\footnote{\url{http://www.sleuthkit.org/sleuthkit/index.php}}. While we can analyze some parts of the disk effectively using a hex viewer, this method quickly become complicated when looking at the MFT which is effectively a file itself and is there susceptible to fragmentation as with any other file.
-All the images we will be analyzing will be 100MB in size unless otherwise stated.
+\section{NTFS Structure and Behaviour}
+In this section we will be analysing the images generated above, primarily using the tools provided by \emph{sleuthkit}\footnote{\url{http://www.sleuthkit.org/sleuthkit/index.php}}.
+While we can analyse some parts of the disk effectively using a hex viewer, this method quickly becomes complicated when looking at the MFT which is effectively a file itself and is there susceptible to fragmentation as with any other file.
+All the images we will be analysing will be 100MB in size unless otherwise stated.
 
 \subsection{Inital Format Image Analysis: 1.ntfs.init.cleanformated.dd }
-While this image is not too exciting, we can note some initial information about the NTFS partition using the tools provided by sleuthkit.
-
+While this image is not too exciting, we can note some initial information about the NTFS partition using the tools provided by sleuthkit:
 \begin{verbatim}
 $ fsstat 1.ntfs.init.cleanformated.dd
 FILE SYSTEM INFORMATION
@@ -224,11 +216,13 @@ We can see that we have the following useful information about the disk.
 \begin{itemize}
         \item Sector size is 512 bytes
         \item Cluster size is the same as sector size
+        \item Its root directory is ``5'' and so we can say that MFT itself logically resides in the root directory.
         \item First cluster of MFT is at cluster 69594, or byte 35632128, roughly 35MB into the image.
         \item The first cluster of the Mirror MFT is at cluster 104390, or byte 53447680, roughly 53MB into the image.
 \end{itemize}
 
-We can also have a look at the Master File Table in hex format. First we get the inode which contains the MFT using \texttt{fls}
+We can also have a look at the Master File Table in hex format.
+First we get the inode which contains the MFT using \texttt{fls}
 
 \begin{verbatim}
 $ fls 1.ntfs.init.cleanformated.dd
@@ -252,7 +246,7 @@ $ icat 1.ntfs.init.cleanformated.dd 0 | xxd | less
 .
 .
 \end{verbatim}
-The advantage of viewing the MFT in this was is that you can view a fragmented MFT as if it was one contiguous hex file. Other useful information can be displayed using sleuthkit's \texttt{istat}
+The advantage of viewing the MFT using \texttt{icat} is that you can view a fragmented MFT as if it was one contiguous hex file. Other useful information can be displayed using sleuthkit's \texttt{istat}
 Interesting output produced by istat is displayed below
 \begin{verbatim}
 $ istat 1.ntfs.init.cleanformated.dd 0
@@ -270,10 +264,11 @@ Allocated Size: 16384           Actual Size: 16384
 Type: $BITMAP (176-5)   Name: N/A   Non-Resident   size: 8
 69593
 \end{verbatim}
-You can see here that the size of the MFT is 16k and that the name of this system folder has the name \$MFT.
+You can see here that the size of the MFT is 16k and that the name of this system folder is \$MFT.
 
 \subsection{Analysis of: 2.ntfs.onesmallfile.dd}
-The \texttt{fls} utility can be used to display the file and get it's inode information, we can see that the file is stored in inode 29, had a data type of 128 and a data stream number of 1.
+In this image, one small file was created ont he filesystem, we can use the  \texttt{fls} utility can be used to display a file and get its inode information.
+From the output of \texttt{fls} below, we can see that the file exists at inode 29, has a data type of 128 and a data stream number of 1.
 
 \begin{verbatim}
 $ fls 2.ntfs.onesmallfile.dd
@@ -281,14 +276,14 @@ $ fls 2.ntfs.onesmallfile.dd
 r/r 29-128-1:        test.txt
 .
 \end{verbatim}
-We can extract this file from the filesystem using \texttt{icat} as follows.
+Using this information, we can then extract the file contents using \texttt{icat} as follows.
 \begin{verbatim}
 $ icat 2.ntfs.onesmallfile.dd 29
 I'm sorry, Dave. I'm afraid I can't do that.
 \end{verbatim}
 
 
-We can also see that the text of the file is small enough to fit into the the MFT itself. Note that the hex values here are an offset from the start of the MFT.
+We decided to look at the MFT entry in hex format and we can see from the output below that the text of the file is small enough to fit into the the MFT itself. Note that the the output here was produced using \texttt{icat} and therefore the hex values in the left column are an offset from the start of the MFT and not the start of the partition itself.
 \begin{verbatim}
 $ icat 2.ntfs.onesmallfile.dd 0 | xxd | less
 0007400: 4649 4c45 3000 0300 d91b 1800 0000 0000  FILE0...........
@@ -316,15 +311,15 @@ $ icat 2.ntfs.onesmallfile.dd 0 | xxd | less
 \end{verbatim}
 
 
-We then inspected the partition image in raw hex using \texttt{xxd} and \texttt{less}.
+We then proceeded to inspect the complete partition image in raw hex using \texttt{xxd} and \texttt{less}.
 \begin{verbatim}
 xxd -a 2.ntfs.onesmallfile.dd | less
 \end{verbatim}
-We found that searching for entries with the filename test.txt (we searched for the unicode string t.e.s.t.) we found two entries, one in the MFT and one in the MFT mirror. It was interesting to note that the data contents of the file in question only resided in the MFT and was missing from the Mirror. Which raises the question of why the MFT Mirror is called a mirror when it clearly isn't.
+We found that searching for entries with the filename \texttt{test.txt} (we searched for the unicode string t.e.s.t.) we found two entries, one in the MFT and one in the MFT mirror.  It was interesting to note that the data contents of the file in question only resided in the MFT and was missing from the Mirror. Which raises the question of why the MFT Mirror is called a mirror when it does not contain all the information from the MFT.
 
 
 \subsection{File Recovery in NTFS}
-When a file is deleted in NTFS, the files entry in the MFT marks the file as deleted by flipping a ``in-use'' flag which makes the filesystem driver interprete that file as being ``deleted''\footnote{cmp.\, \url{http://www.codeproject.com/KB/files/NTFSUndelete.aspx}}.\FIXME{potentially show the differences}
+When a file is deleted in NTFS, the ``files'' entry in the MFT marks the file as deleted by flipping a ``in-use'' flag which makes the filesystem driver interprete that file as being ``deleted''\footnote{cmp.\, \url{http://www.codeproject.com/KB/files/NTFSUndelete.aspx}}.
 Since only one bit is flipped, this MFT still contains a lot of information about the deleted file, including its name, MAC times, and complete cluster runs which is very advantageous when dealing with fragmented files.
 This MFT entry, once marked as deleted, can be queried by sleuthkit tools and the whole file can be recovered easily.
 The filesystem can be queried as follows for deleted files:
@@ -334,26 +329,50 @@ $ fls -d 4.ntfs.smalldeleted.dd
 -/r * 29-128-1:    test.txt
 \end{verbatim}
 
+We can see the differences in the MFT entry that marks a file as being deleted written in \emph{this shape} below.
+In the first example we can see a field contained in the fixed header which contains the flag \texttt{0x01}, this marks the MFT entry as being in use.
+A more complete list of the fields and what they mean can be found on some third party documentation projects \footnote{i.e.\, \url{http://ntfs.com/disk-scan.htm}}.
+\begin{alltt}
+2202800: 4649 4c45 3000 0300 d91b 1800 0000 0000  FILE0...........
+2202810: 0100 0100 3800 \emph{0100} 5801 0000 0004 0000  ....8...X.......
+\end{alltt}
+In the second example this field has been changed to \texttt{0x00}.
+\begin{alltt}
+2202800: 4649 4c45 3000 0300 b910 2800 0000 0000  FILE0.....(.....
+2202810: 0200 0100 3800 \emph{0000} 5801 0000 0004 0000  ....8...X.......
+\end{alltt}
+
 We can see that the deleted file has an inode entry of 29 and so we can then recover the file using \texttt{icat}.
 \begin{verbatim}
 $ icat 4.ntfs.smalldeleted.dd 29-128-1
 I'm sorry, Dave. I'm afraid I can't do that.
 \end{verbatim}
 
-\FIXME{Comment on when the mft entry gets overwritten. Is it still possible to recover the file?}
 
-Remembering the disk image we used to investigate during the last reports, we can use this knowledge to potentially recover images that we identified of being deleted:
+Remembering the disk image we used to investigate during the last reports, we can use this knowledge to potentially recover images that we identified as being deleted.
+While discussing Windows~XP artefacts in the Lab02-report, we found that all pictures, except two, were missing from a ``My Pictures'' folder by looking at the thumbnail cache.
+The cache included filenames which did not show up in the timeline leaving us with the strong suspicion that these files were deleted and removed from the Recycle~Bin.
+Now we can use \emph{sleuthkit} to find deleted files and extract them:
+%
 \begin{verbatim}
 $ fls -rd  XP-4G.ntfs.dd | grep luvduc_lg
 -/r * 13279-128-4:    .../89IZKPI7/luvduc_lg[1].jpg
 $ icat XP-4G.ntfs.dd 13279-128-4 | display
 \end{verbatim}
 % \includegraphics[width=\textwidth]{bin/lab03-luvduc_lg}
-\centering{\includegraphics[height=15em]{bin/lab03-luvduc_lg}}\FIXME{Adjust heigth to fit on page}
+\begin{center}
+\includegraphics[height=15em]{bin/lab03-luvduc_lg}
+\end{center}
+
+Admittedly, recovering the picture is not too interesting, because the thumbnail cache contained a small version of the image anyway, but still: We recovered the full resolution image and of course, this is possible with every deleted file on the filesystem that has not yet been overwritten (\texttt{fls -rd XP-4G.ntfs.dd | wc -l} reports 4155 being marked as deleted).
+
 
 
 \section{Alternate Data Streams}
-An interesting feature in NTFS is the existance of alternate data streams or ``forks'' in which you can store additional data and have it associated with a particular file. Each file can have multiple data streams associated with it and can be queried using stream aware tools such as the ones provided by sleuthkit. It is worth noting here that when timelines where produced using \texttt{find} and \texttt{sort} that these alternate data streams were not captured. We can use \texttt{fls} and \texttt{grep} to display all the files which have alternate data streams as follows.
+An interesting feature in NTFS is the existence of \emph{Alternate Data Streams} (ADS) or ``forks'' in which you can store additional data and have it associated with a particular file.
+Each file can have multiple data streams associated with it and can be queried using stream aware tools such as the ones provided by sleuthkit.
+It is worth noting here that when timelines were produced using \texttt{find} and \texttt{sort} that these alternate data streams were not captured.
+We can use \texttt{fls} and \texttt{grep} to display all the files which have alternate data streams as follows.
 
 \begin{verbatim}
 $ fls -r 7.ntfs.altfile3.dd | grep ':.*:'
@@ -375,33 +394,57 @@ $ icat 7.ntfs.altfile3.dd 31-128-3
 "Alternate data is hiding here"
 \end{verbatim}
 
+Again, we analyse ADS in the disk-image we analysed during the lab reports to gain further information on what happened on the system.
+As per Lab02-Report, two picture files were left in the ``My Pictures'' folder, and we found an ADS in one of the remaining picture files (the second picture does not have an ADS):
+\begin{verbatim}
+$ fls -r XP-4G.ntfs.dd | grep ':.*:'  | tail -n +9
++++++ r/r 13215-128-4:    Thumbs.db:encryptable
++++++ r/r 13262-128-4:    Thumbs.db:encryptable
++++++ r/r 13225-128-5:    Yellow Ducks_s.jpg:Zone.Identifier
+++ -/r * 13224-128-4:    Dc3.png:Zone.Identifier
+++ -/r * 13261-128-5:    Dc9.jpg:Zone.Identifier
+++ -/r * 13265-128-5:    Dc5.jpg:Zone.Identifier
+++ -/r * 13282-128-5:    Dc7.jpg:Zone.Identifier
+++ -/r * 13321-128-5:    Dc4.jpg:Zone.Identifier
+++ -/r * 13440-128-5:    Dc1.jpg:Zone.Identifier
+++ -/r * 13524-128-5:    Dc2.jpg:Zone.Identifier
+$ icat  ~/.avfs/home/muelli/qemu/XP-4G.ntfs.dd.gz# 13225-128-5
+[ZoneTransfer]
+ZoneId=3
+\end{verbatim}
+By researching we found a document\footnote{\url{www.sandersonforensics.com/Files/ZoneIdentifier.pdf}} which explains that Internet~Explorer divides the Internet into zones (i.e.\, Local, Trusted, Restricted) and thus every page or file that the Internet~Explorer accesses originates from one of these zones.
+When it downloads a file, this zone is saved to an ADS (\texttt{Zone.Identifier}) of the file so that Windows can pop up a warning if the originating zone was not trusted.
+We can thus be confident that the \texttt{Yellow Ducks\_s.jpg} picture was downloaded off the Internet using Internet Explorer.
+Interestingly enough, the second file which is left on the filesystem (\texttt{space-duck.jpg}), does not have that ADS which leaves the question whether it was downloaded or not.
 
-\section{Timeline Creation Re-visited}
 
-When looking at an NTFS filesystem, another way to produce a filesystem timeline is be to use the \texttt{fls} and \texttt{mactime} tools from sleuthkit. When \texttt{fls} is used with the \texttt{-m} flag, output is generated that \texttt{mactime} can process and display.
 
-When dealing with an image using the NTFS filesystem, these tools have the advantage over GNU \texttt{ls} tool for generating a timeline for the following reasons:
+\section{Timeline Creation Revisited}
 
+When looking at an NTFS filesystem, another way to produce a filesystem timeline is to use the \texttt{fls} and \texttt{mactime} tools from sleuthkit.
+When the \texttt{fls} utility is used with the \texttt{-m} flag, times are displayed in machine format.
+This output can then be parsed using the \texttt{mactime} utility to produce output that is presented in a human readable format to produce a filesystem timeline.
+
+
+When dealing with an image using the NTFS filesystem, these tools have the advantage over the GNU \texttt{ls} tool for generating a timeline for the following reasons:
 \begin{itemize}
-        \item \texttt{fls} is Alternate data stream aware and so these will be included in the timeline
-        \item \texttt{fls} will also display entries marked as deleted from the MFT. This has the caveat that the entry has not been overwritten by windows during normal operation.
+        \item \texttt{fls} is Alternate Data Stream aware and so these will be included in the timeline
+        \item \texttt{fls} will also display entries marked as deleted from the MFT as long as it has not been overwritten by Windows during normal operation.
 \end{itemize}
 
-Here you can see a filesystem agnostic, generic way to make a filesystem timeline using GNU tools \texttt{find}, and \texttt{sort}
+Remember the generic way of creating a filesystem timeline using GNU tools \texttt{find}, and \texttt{sort}:
 \begin{verbatim}
 $ find mount/ -printf "%A+ (a) %p\n%T+ (m) %p\n%C+ (c) %p\n"
           | sort > timeline2.txt
 \end{verbatim}
 
-Sleuthkit provides NTFS aware tools that can show deleted files and Alternate Data Streams such as \texttt{fls} to geterate some output for \texttt{mactime} to parse. A timeline can be generated as below.
-
+To include NTFS specific information such as deleted files and Alternate Data Streams, we use tools provided by sleuthkit to generate the timeline:
 \begin{verbatim}
 $ fls -m "C:/" -r 4.ntfs.smalldeleted.dd > timelinetemp.txt
 $ mactime -b timelinetemp.txt > timeline1.txt
 \end{verbatim}
 
-Below you can see a portion of the timeline generated with \texttt{mactime} and \texttt{fls} which includes deleted files.
-
+Below you can see a portion of the timeline generated with \texttt{mactime} and \texttt{fls} which includes deleted files:
 \begin{verbatim}
 Mon Mar 15 2010 11:29:07       44 ...b -/rrwxrwxrwx
          0        0        29-128-1 C:/test.txt (deleted)
@@ -412,16 +455,31 @@ Mon Mar 15 2010 11:42:37    89603 ...b r/rrwxrwxrwx
 Mon Mar 15 2010 11:42:52    89603 mac. r/rrwxrwxrwx
          0        0        30-128-4 C:/evil dead full script.txt
 \end{verbatim}
-You can also see that we have yet another date format and way of representing data. There is a need for a common log format for forensic tools so as to allow easy integration of timelines generated by different tools and data sources.
+You can also see that we have yet another date format and way of representing data.
+There is a need for a common log format for forensic tools to allow easy integration of timelines generated by different tools and data sources.
 
-Another oddity is that each line is not timestamped, only the first occurrence of a line for the time in question and the rest of the entries in the timeline for that particular time have no timestamp. While this is not a big issue, personally it wouild be preferable for each line to be timestamped to enable combination with timelines generated from other sources.
+Another oddity is that each line is not timestamped, only the first occurrence of a line for the time in question and the rest of the entries in the timeline for that particular time have no timestamp.
+While this is not a big issue, it would be preferable for each line to be timestamped to enable integration with timelines generated from other sources.
 
-It is worth noting that we have access to the sleuthkit source under the GPL and so the behavior of these tools can be modified.
-
+Since sleuthkit is GPL licensed, it guarantees to be used freely, including modification and redistribution of the source code so that the desired behaviour could be added.
+Due to time constraints, however, we were not (yet) able to do that.
 
 
 
 \section{Conclusion}
+
+In this report we gave a high level description of the NTFS filesystem and the MFT.
+
+We explored the behaviour of NTFS filesystem using the tools provided by sleuthkit using multiple NTFS images.
+
+We used the tools provided by sleuthkit such as \texttt{fsstat}, \texttt{fls}, \texttt{icat} and \texttt{istat} to search for an recover files marked as being deleted in the MFT. We also used these tools to search for files containing Alternate Data Streams (ADS).
+
+Following this we described an alternative way to produce a filesystem timeline using the sleuthkit \texttt{fls} and \texttt{mactime} tools, but noted that the output from these tools needed to be modified if we wanted to combine this timeline with ones generated from other sources.
+
+We examined a Windows XP disk image from Lab-02 using \texttt{fls -d} to search for any interesting ADS or deleted entries existing in the MFT.
+Firstly we discovered that the a picture contained an Internet~Explorer specific ADS indicating that it was downloaded off the Internetnet using the Internet~Explorer.
+Secondly, we found and restored a picture that existed in a \texttt{Thumbs.db} file but which had been removed from the filesystem.
+
 
 \section*{License}
 This work is licensed to the public under the Creative Commons Attribution-Non-Commercial-Share Alike 3.0 Germany License.
@@ -429,5 +487,4 @@ This work is licensed to the public under the Creative Commons Attribution-Non-C
 
 
 \end{document}
-
 
