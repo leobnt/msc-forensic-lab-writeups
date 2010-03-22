@@ -124,8 +124,16 @@
 
 
 \section{Introduction}
-Write some overview of the NTFS filesystem and MFT operation here
-\url{http://msdn.microsoft.com/en-us/library/aa365230%28VS.85%29.aspx}
+With Windows NT, Microsoft introduced a new filesystem that obsoleted FAT (which was covered in the last report) as was able to compete with ``HPFS'' which was used in OS/2, a Windows competing operating system.
+This ``New Technology FileSystem'' (\emph{NTFS}) finally enabled Windows users to have longer file names, to save the owner of a file, and other convenient features that OS/2 users had with HPFS as well as new features like encryption, saving metadata along with a file or soft- and hardlinks.
+
+
+NTFS heart is the Master File Table (\emph{MFT}) which can be described as a more advaced FAT.
+Quoting the official (as always non-technical) documentation%
+\footnote{\url{http://msdn.microsoft.com/en-us/library/aa365230\%28VS.85\%29.aspx}}:
+\begin{quote}
+The NTFS file system contains a file called the master file table, or MFT. There is at least one entry in the MFT for every file on an NTFS file system volume, including the MFT itself. All information about a file, including its size, time and date stamps, permissions, and data content, is stored either in MFT entries, or in space outside the MFT that is described by MFT entries.
+\end{quote}
 
 
 \section{Images Creation}
