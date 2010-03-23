@@ -1,0 +1,555 @@
+% !TEX TS-program = pdflatex
+% !TEX encoding = UTF-8 Unicode
+
+\documentclass[a4paper,
+    11pt,
+    normalheadings,
+%   parskip,
+    parindent,
+%   draft,
+%   final,
+%   bibgerm,
+%   german,
+    UKenglish,
+%   twoside,
+%   twocolum,
+%   openright,  % Kap.beginn immer rechts! (fkt. nur bei report, nicht bei article)
+    abstracton,
+    ]{scrartcl}
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc} % set input encoding (not needed with XeLaTeX)
+
+%%% Examples of Article customizations
+% These packages are optional, depending whether you want the features they provide.
+% See the LaTeX Companion or other references for full information.
+
+%%% PAGE DIMENSIONS
+\usepackage{geometry} % to change the page dimensions
+\geometry{a4paper} % or letterpaper (US) or a5paper or....
+% \geometry{margins=2in} % for example, change the margins to 2 inches all round
+% \geometry{landscape} % set up the page for landscape
+%   read geometry.pdf for detailed page layout information
+
+\usepackage{graphicx} % support the \includegraphics command and options
+
+\usepackage[parfill]{parskip} % Activate to begin paragraphs with an empty line rather than an indent
+
+%%% PACKAGES
+\usepackage{booktabs} % for much better looking tables
+\usepackage{alltt} % provides alltt enviroment which allows \emph{}ed text
+\usepackage{array} % for better arrays (eg matrices) in maths
+\usepackage{paralist} % very flexible & customisable lists (eg. enumerate/itemize, etc.)
+\usepackage{verbatim} % adds environment for commenting out blocks of text & for better verbatim
+\usepackage{subfig} % make it possible to include more than one captioned figure/table in a single float
+% These packages are all incorporated in the memoir class to one degree or another...
+
+
+\usepackage[colorlinks,urlcolor=blue,plainpages=false]{hyperref}
+\usepackage{embedfile}        % Provides \embedfile[filename=foo, desc={bar}]{file}
+\usepackage{hyperxmp}         % To be have an XMP Data Stream f.e. to include the license
+
+% \usepackage{newcent}  % Different Font, looks bigger
+
+\usepackage{ifthen}
+
+\usepackage[
+    T1, % this is good for Umlauts
+%   OT1 % This breaks Umlauts
+       ]{fontenc}
+
+%%% HEADERS & FOOTERS
+\usepackage{fancyhdr} % This should be set AFTER setting up the page geometry
+\pagestyle{fancy} % options: empty , plain , fancy
+\renewcommand{\headrulewidth}{0pt} % customise the layout...
+\lhead{}\chead{}\rhead{}
+\lfoot{}\cfoot{\thepage}\rfoot{}
+
+%%% SECTION TITLE APPEARANCE
+\usepackage{sectsty}
+\allsectionsfont{\sffamily\mdseries\upshape} % (See the fntguide.pdf for font help)
+% (This matches ConTeXt defaults)
+
+%%% ToC (table of contents) APPEARANCE
+\usepackage[nottoc,notlof,notlot]{tocbibind} % Put the bibliography in the ToC
+\usepackage[titles,subfigure]{tocloft} % Alter the style of the Table of Contents
+\renewcommand{\cftsecfont}{\rmfamily\mdseries\upshape}
+\renewcommand{\cftsecpagefont}{\rmfamily\mdseries\upshape} % No bold!
+
+\usepackage{listings}
+
+%%% END Article customizations
+
+%%% The "real" document content comes below...
+
+% Title Page
+\newcommand{\mytitle}{Lab06: Memory Forensics}
+\subject{Report\\%
+    Forensics\\%
+    Summersemester 2010\\%
+    CA643\\%
+    Charlie Daly}
+\title{\mytitle{}}
+%\subtitle{}
+\author{
+    cand. Dipl. Inf. Tobias Müller <\href{mailto:muellet2@computing.dcu.ie?subject=ss10-forensic-lab01}{muellet2@}>, 59212333 \and
+    BSc. Anthony Walters <\href{mailto:waltera3@computing.dcu.ie?subject=ss10-forensic-lab01}{waltera3@}>, 59213102
+    }
+% \institute[Mathe - UniHH]{Fachbereich Mathematik\\
+%         Universit\"at Hamburg}
+% \logo{\includegraphics[height=0.5cm]{cinsects-blue}}
+% \titlegraphic{\includegraphics[width=1.5cm]{fsr-logo}}
+\date{\today}
+
+
+\hypersetup{
+        pdftitle={\mytitle{}},
+        pdfauthor={Tobias Mueller, Anthony Walters},
+        pdfsubject={Forensics},
+        pdfkeywords={uni, linux, windows, ca643, forensics, memory, volatility},
+        pdflang=en,
+        pdfcopyright={This work is licensed to the public under the Creative Commons Attribution-Non-Commercial-Share Alike 3.0 Germany License.},
+        pdflicenseurl={http://creativecommons.org/licenses/by-nc-sa/3.0/de/}
+}
+
+\hyphenation{Infor-mations-sys-teme}
+\hyphenation{\"{o}ko-logischen}
+
+\newcommand{\note}[1]{#1}
+\renewcommand{\comment}[1]{}
+\newcommand{\inlinequote}[1]{``\textit{#1}''}
+\newcommand{\FIXME}[1]{\mbox{}\marginpar{\footnotesize\raggedright\hspace{0pt}\color{red}\emph{#1}}}
+
+\begin{document}
+\selectlanguage{english}
+\maketitle
+
+
+\section{Introduction}
+In this Lab report, we will examine the Random Access Memory (RAM) of a Windows XP SP3 system in order to get an idea of what the user was doing just before the RAM snapshot was taken.
+The RAM is a storage for (program) data but unlike a harddisk it is around a million times faster and volatile.
+That is, its contents vanishes within a few seconds after the machine is powered off.
+But as there is data of the running kernel and almost every running program in the RAM, it contains valuable information about the state of a machine, including passwords, running processes, open connections or registry data.
+
+However, manually obtaining the RAM contents usually involves altering the state of the machine, because the system has to either run a special program (and running programs modifies the state) or to load a special FireWire driver (and loading drivers off the disk into memory alters the machines state).
+Even hibernating the system modifies the machine because files are written, memory might get compressed, etc.
+It is possible to obtain the contents of the RAM by cooling the chips down and quickly putting them into a system which keeps refreshing the data so that it can be read with an own system.
+This method, however, requires a lot of preparation, skill and fortune because every second matters.
+But even if you manage to save the RAM, you might get into trouble because the examined system will still have a CPU cache which might keep the system up and running, potentially noticing the loss of RAM and changing contents of the disk (i.e. erasing).
+Since a Windows (Vista) Kernel is around 9.9MiB in size%
+\footnote{\url{http://widefox.pbworks.com/Boot}} it would not necessarily fit into a 2MiB cache which modern CPUs have, but a Linux (2.6.29) Kernel can be 1.7MiB in size which would fit perfectly.
+Other, smaller, Kernels such as L4 or QNX exist.
+Our RAM image, however, was obtained using two methods which we will describe in the following sections.
+The first method is using an external bus system (FireWire) to read the victims RAM and the second method is running a program (Win32dd) on the victims machine which simply dumps all RAM to the disk.
+
+During this report, we will arbitrarily use the term \emph{victim} or \emph{host} for the machine we want to capture the RAM contents of, because the scenario does not substantially differ from a malicious attacker wanting to read memory.
+
+Given the RAM image, we will do some analysis on it and find a given JPEG picture in the memory.
+We also discover password hashes which allow us to recover the corresponding passwords.
+We do that by using regular GNU tools as well as special purpose memory analysis programs.
+
+
+
+\section{Obtaining RAM via FireWire}
+FireWire was invented in 1995 by Apple\footnote{\url{http://en.wikipedia.org/wiki/FireWire}} for high-speed data transmission.
+By design, it is able to read and write directly to the host machines memory contents.
+This feature can be exploited to dump the machines memory.
+
+However, to dump Windows' memory via FireWire, one needs to convince Windows to be eligible to do so by pretending to be, i.e.\, a proprietary and expensive audio player called ``iPod''\footnote{\url{http://www.hermann-uwe.de/blog/physical-memory-attacks-via-firewire-dma-part-1-overview-and-mitigation}}.
+
+By using existing tools it is relatively easy to dump Windows' memory.
+One needs to download and build \emph{pythonraw1394} and the necessary dependencies.
+Then, the proper tools, which basically configure the Linux host to be an iPod and dump the victims machine's memory must be run.
+Following script should do all the necessary steps and finally save a 2GB memory dump in a temporary directory.
+It is known to work on an Ubuntu 9.10 Linux system.
+%This script is also attached to this PDF file and can be extracted using either a proper reader or \emph{pdftk \$PDF unpack\_files}.\FIXME{eh, either attach that stupid script using attachfile or get rid of that sentence}
+%\begin{figure} % Ahh, stupid inclusion doesn't work with embedfile.. O_o
+%    \lstinputlisting[language=bash, firstline=1]{firewiredump.sh}
+%    \caption{Script which dumps memory via FireWire)}%
+%    \embedfile[filename=firedump.sh, desc={Script which dumps memory via FireWire}]{firewiredump.sh}%
+%    \label{code:firedump}
+%\end{figure}
+
+\begin{verbatim}
+#!/bin/bash
+
+DIR=/tmp/$RANDOM
+PYTHONRAW=http://www.storm.net.nz/static/files/pythonraw1394-1.0.tar.gz
+LOCALPORT=0
+REMOTEPORT=1
+NODE=0
+
+mkdir -p $DIR && cd $DIR &&
+  wget --continue -O- $PYTHONRAW | tar xvf - &&
+  cd pythonraw1394/ &&
+  sudo apt-get install -y libraw1394 libraw1394-dev swig python-dev build-essential &&
+  sed -i 's/python2\.3/python2\.6/g' Makefile &&
+  make &&
+  sudo modprobe raw1394 &&
+  sudo chgrp $USER /dev/raw1934 &&
+  ./businfo &&
+  ./romtool -g $LOCALPORT $DIR/localport.csr &&
+  ./romtool -s $LOCALPORT ipod.csr &&
+  ./1394memimage $REMOTEPORT $NODE $DIR/memdump 0 2G &&
+  echo Success, please read the memory at $DIR/memdump || echo Failure
+\end{verbatim}
+
+By doing that, we successfully obtained the contents of a Windows XP SP3 machine in a temporary directory.
+In our case, it took around 500 seconds to capture 1024 MiB RAM.
+Interestingly enough, when reading more RAM than installed in the victims machine, the program puts \texttt{0xff}s in the dump file.
+We rebooted the machine from Windows into Linux and read the RAM.
+Hence, reading RAM from a machine running Linux (2.6.31) works fine.
+We found it interesting that we still were able to read memory of the Windows system which we have shutdown properly.
+So Windows left artefacts which we were able read.
+
+Note that the machine whose RAM we read ran a Linux Kernel which did not make use of the most recent FireWire stack, simply because it has not been officially released yet.
+It will be interesting to see, how and under which circumstances the new FireWire stack, called Juju\footnote{\url{https://ieee1394.wiki.kernel.org/index.php/Juju_Migration}}, allows the RAM to be read and written.
+For completeness, we also tried reading the RAM of a Laptop running MacOS and it worked equally well.
+
+
+\begin{verbatim}
+muelli@xbox:/tmp/pythonraw1394$ ionice -c 3 ./1394memimage 0 1 /tmp/windows.mem 0-1G
+1394memimage v1.0 Adam Boileau, 2006. <adam@storm.net.nz>
+Init firewire, port 0 node 1
+Reading 0x3fd00000 (1045504KiB) at 2027 KiB/s...
+1073741824 bytes read
+Elapsed time 517.51 seconds
+Writing metadata and hashes...
+muelli@xbox:/tmp/pythonraw1394$ volatility ident -f windows.mem
+              Image Name: windows.mem
+              Image Type: Service Pack 3
+                 VM Type: nopae
+                     DTB: 0x39000
+                Datetime: Mon Mar 22 19:06:42 2010
+muelli@xbox:/tmp/pythonraw1394$
+\end{verbatim}
+
+It might be interesting for future research to remotely change Windows' memory to, say, unlock a password protected workstation, change configuration of a firewall or even inject new processes.
+Although we consider it to be very interesting to build a tiny appliance that does the memory dump of the victims machine, we could not find anything on the Internet.
+Given that products on the forensic market are pretty expensive, building such a machine might be very rewarding.
+
+
+\section{Obtaining RAM using Windd}
+Windd\footnote{\url{http://windd.msuiche.net/}} is a gratis (but neither open souce nor free) tool for dumping the RAM contents of PCs running Microsoft Windows. It is worth noting here that by running any program, including Windd on a target PC, alters the state of the machine, but it can be argued that capturing a live RAM image for later investigation outweighs this downside.
+
+
+When running Windd, we ran into an issue which prevented us from obtaining a memory dump:
+\begin{verbatim}
+Error: InstallDriver cannot start service (Err=0x00000002)
+Error: Cannot open \\.\win32dd
+\end{verbatim}
+This not very helpful error message would not go away whatever we did, so a look on the authors website brought up a hidden comment which basically told us to move the \texttt{.sys} driver file to \texttt{\%WINDIR\%\textbackslash{}SYSTEM32}.
+We wanted to patch the error message to something more enlightening, so that the next person getting this error message knows what to do, but unfortunately, we neither have the source code nor the freedom to modify the program.
+
+We then tried to use Windd using a normal, non administrator account and found that elevated privileges were needed to run the executable:
+\begin{verbatim}
+    -> Error: win32dd requires Administrator privileges
+\end{verbatim}
+If faced with a PC which is logged in with a non administrative account, which is typically found in a business environment, the Windows \texttt{runas} command needs to  be used to run Win32dd with the rights of either a local or domain administrator account:
+\begin{verbatim}
+runas /user:Administrator "Win32dd.exe /f c:\images\memorydump"
+\end{verbatim}
+When using \texttt{runas} we noticed that a full path needed to be specified for creating our image file.
+Without specifiying a path, Windd saved the RAM image file in to the \texttt{\%WINDIR\%\textbackslash{}system32} directory instead of the current directory as we would have expected.
+
+
+
+
+\section{Obtaining RAM using other methods}
+While the two methods presented above are pretty convenient and powerful, one might still consider using a different method to capture RAM.
+A reason might be the absence of a FireWire port or driver, or simply the fact that the victim does not run a Windows machine.
+Another more interesting scenario is the analysis of a systems behaviour, i.e.\, how does the memory differ between a locked and an unlocked workstation.
+
+\subsection{The fmem Kernel Module}
+Although Linux provides a \texttt{/dev/mem} file, one cannot read the physical RAM through it.
+In order for Linux to expose the RAM via a file, one can load the \emph{fmem} Kernel module and use \texttt{dd} to obtain the contents of the physical memory address space, e.g.\, to obtain one gigabyte of memory \texttt{dd if=/dev/fmem of=memdump bs=1048576 count=1024}.
+We tried using \texttt{cat} to dump the RAM but found that it read past the end of the physical memory.
+This is a known bug with \texttt{fmem} which the author notes in the README file provided with the module.
+
+
+In order to be able to load the module, it need to be downloaded\footnote{from \url{http://hysteria.sk/~niekt0/foriana/fmem_current.tgz}} and compiled\footnote{untar, make, and run the supplied run.sh script to install} first.
+As the steps are pretty straight forward, we skip the details of how to do it.
+
+
+\subsection{Using QEmu to save RAM}
+QEmu is a virtualisation solution that allows to dump the RAM of the guest into a file unsing the \texttt{pmemsave} command.
+We think this deserves attention because it can be used to prepare attacks using the FireWire technique described above.
+That technique allows patching the memory on a running (Windows) system which in turn can be used to, say, unlock a password protected workstation.
+While unlocking has been done for a Windows XP SP2 system\footnote{winlockpwn}, no publicly available tools do that for a later Windows system.
+
+With QEmu, we are able to run a target system, say Windows XP SP3, and get two memory dumps:
+The first while the machine is locked, and the second right after unlocking.
+By looking at the difference, we might be able to tell which data has to be modified in what way in order to remotely unlock the machine.
+This technique can also be used to, say, disable a Firewall, elevate priviledges or even inject new processes into the running system.
+It is noteworthy that this method is Operating System independent for both, the host and the guest, because QEmu is free software which run on many platforms and can itself run many Operating Systems.
+Due to timeconstraints, however, we had to put this off for future research.
+
+Other improvements can and should be made to QEmu include providing a file that exposes the guests RAM and allows reading and writing, so that dumping the whole memory will not be needed anymore.
+
+
+
+
+
+
+
+\section{Analysing WinXP Memory}
+In this section we will be analysing the memory image Windows XP system.
+We will start off using regular and simple tools from the Linux userland but then use the Volatility tool to do advanced analysis.
+
+
+\subsection{Initial Image Analysis}
+The initial analysis of our RAM image was performed using standard GNU utilities\footnote{\url{http://www.gnu.org/}}.
+While this is not strictly best practice for a forensic analysis, this provided us with a good starting point for future analysis, and it has the added advantage that it is easy to do.
+Using \texttt{strings} extracts and prints any ASCII looking text to the screen, and when piped into \texttt{less}, we can view this data and perform regular expression searches on interesting pieces of text such as ``password''.
+
+For example a search for all lines starting with the string ``searchbar'' gave us the following lines of text, which looks like search terms used in a web browser.
+This is probably text obtained from the memory resident copy of the Windows Registry.
+
+\begin{verbatim}
+$ strings memorydump | grep '^searchbar' | less
+searchbar-historygoofy
+searchbar-history Error: Cannot open \\.\win32dd
+searchbar-history InstallDriver Cannot start service (Err=0x00000002)
+searchbar-historywindd
+searchbar-historywin32dd problem
+\end{verbatim}
+
+
+
+
+
+% \subsection{Using dd To Extract Binary Data}
+Using \texttt{dd} is usually thought of in association with reading and writing disk images, but the manual page for \texttt{dd} describes the tool as \inlinequote{dd - convert and copy a file}.
+Since our memory image is a simple file, we can use this tool to extract certain parts for further analysis.
+
+In our test setup, we viewed a picture using a webbrowser so that we expected that picture to show up in the memory dump.
+We then explored the possibility of extracting the picture directly from our Windows XP memory image file, using \texttt{dd} to extract specific bytes from the file.
+While we found parts of the picture in the memory dump, we observed that these parts are highly distributed throughout the physical memory of the machine.
+So one part of the image showed up on the top of the memory dump while the next part was in the bottom of the dump.
+Also, these parts of the picture were pretty small: 4kB.
+
+We can see that from the output of Windd from when we created the initial memory image file that the physical address space was divided into 4kB pages which explains why the picture was split up into these chunks.
+\begin{verbatim}
+    Physical page size:         4096 bytes
+    Minimum physical address:   0x0000000000001000
+    Maximum physical address:   0x000000002FE7F000
+\end{verbatim}
+
+In order to link them we would need to find the page table for a given process and link the pages together.
+As it will turn out later, volatility can do that for us.
+
+
+
+
+
+
+
+
+\subsection{Analysing a WindowsXP RAM image  Using Volatility}
+To examine a Windows XP memory dump, one wants to use a framework that helps ripping interesting information out of the large amount of binary data.
+Such a tool is \emph{Volatility}.
+We will first discuss how to install volatility on Ubuntu 9.10 and then show how to use it to get password hashes as well as verify whether a picture was most likely loaded and viewed in a windows application.
+
+
+
+
+% \subsubsection{Installing Volatility}
+
+Unfortunately, this tool is obviously written for Windows and cannot be used under Linux right away.
+Because the code quality it not very high, getting it to run under Linux is a bit painful.
+We helped this by heavily patching and then packaging Volatility up to a Debian friendly \texttt{.deb} package which can be easily installed under Ubuntu.
+To install Volatility under Ubuntu-9.10, following steps should be sufficient to install the package:
+\begin{alltt}
+sudo add-apt-repository ppa:ubuntu-bugs-auftrags-killer/muelli &&
+sudo apt-get update &&
+sudo apt-get install volatility
+\end{alltt}
+
+After this ``volatility'' should be available from the command line.
+Also, many plugins have been packaged making it easy to just start analysing memory without installing different packages.
+
+However, there are still more plugins to be packaged.
+Also, some plugins do not work out of the box because they miss dependencies that have not yet been packaged for Ubuntu (i.e.\, python-dasm).
+Future work will thus have to make everything work easily.
+
+
+
+
+
+
+
+
+
+\subsection{Extracting a Graphical Picture from RAM}
+An interesting question might be whether a suspect has viewed a given picture.
+We have seen earlier that the physical address space contains many 4kB sized pages.
+This is a problem for analysing the memory because we usually expect data to be larger than 4kB and this data is most likely fragmented in physical memory.
+So extracting a picture from the raw memory dump, while possible would be problematic.
+Our approach was to create a contiguous dump of a processes virtual memory address space and to search our target image in that memory dump.
+Fortunately, volatility is already able to dump a processes virtual memory address space, which leaves us with the admittedly not too hard task of finding and extracting binary data of that picture.
+
+We started by generating a  list of running processes from the RAM image to identify the process ID of our target process (\texttt{firefox} in our case).
+
+\begin{verbatim}
+$ volatility pslist -f memorydump
+Name                 Pid    PPid   Thds   Hnds   Time
+firefox.exe          2212   2720   22     320    Sat Mar 20 14:33:29 2010
+\end{verbatim}
+
+Afterwards, we dumped the processes virtual memory, using the Pid of that process, into a file. Using this we can start searching for our target picture in the process memory dump:
+
+\begin{verbatim}
+$ volatility memdmp -p 2212 -f memorydump
+\end{verbatim}
+
+Finding the bytes which represent a picture in a block of binary data can be problematic and some initial research was needed.
+We knew  that the picture file that is being searched for was a JPEG and we found that these files have a start and end byte sequence \texttt{0xffd8} and  \texttt{0xffd9} respectively.\footnote{\url{http://www.obrador.com/essentialjpeg/headerinfo.htm}}
+While this was helpful information we still needed to narrow down our search.
+Using \texttt{xxd} we decided to take a small byte sequence from the body of original picture and search for this sequence in the process ID image file.
+Using this method we were able to find the start of the JPEG picture, in the firefox process memory dump.
+Here, we  can see that the start of the JPEG image marker (\texttt{0xffd8}) occurs at address \texttt{0x4e20008} in the image dump.
+\begin{verbatim}
+4e20000: 120e 0200 120e 0200 ffd8 ffe0 0010 4a46  ..............JF
+4e20010: 4946 0001 0200 0064 0064 0000 ffec 0011  IF.....d.d......
+4e20020: 4475 636b 7900 0100 0400 0000 3c00 00ff  Ducky.......<...
+\end{verbatim}
+
+Then from this point forwards in the file, a search for the JPEG end of file byte sequence (\texttt{0xffd9}) gave us the address of the end of the JPEG picture in the memory image file.
+Here we can see that the JPEG picture ends at address \texttt{0x4e40e19}.
+\begin{verbatim}
+4e40e00: d5c2 5047 3401 82c7 b75c 5638 2624 461d  ..PG4....\V8&$F.
+4e40e10: 4c54 f6b1 3d3c 4b3f ffd9 6500 2800 2700  LT..=<K?..e.(.'.
+4e40e20: 7000 7800 2700 2c00 2700 2700 2900 3b00  p.x.'.,.'.'.).;.
+\end{verbatim}
+
+Then using \texttt{dd} with a block size of one byte, and knowing the start and end addresses of our picture image obtained above,  we we can get python to work out the decimal number of bytes to \emph{skip} into the file and also the decimal number of bytes to \emph{count} or read from that position.
+
+\begin{verbatim}
+$ dd if=2212.dmp bs=1 skip=$(python -c 'print 0x4e20008')
+         count=$(python -c 'print 0x4e40e20 - 0x4e20008') > recovered.jpg
+134674+0 records in
+134674+0 records out
+134674 bytes (135 kB) copied, 0.812532 s, 166 kB/s
+\end{verbatim}
+
+To verify that the picture extracted from RAM is the same as original picture we can get as hash of both files:
+\begin{verbatim}
+$ sha256sum Goofy\ Finger.jpg recovered.jpg
+e87db764d0f2baccdd5b68dd0324c31ee2281a787d27de38c48e6e9c300b2349  Goofy Finger.jpg
+e87db764d0f2baccdd5b68dd0324c31ee2281a787d27de38c48e6e9c300b2349  recovered.jpg
+$ display recovered.jpg
+\end{verbatim}
+\begin{center} \includegraphics[width=0.8\textwidth]{bin/goofy} \end{center}
+
+
+
+\subsection{Collecting Password Hashes}
+For password recovery purposes one might be interested in obtaining the hashed passwords of a running (Windows) system.
+As a nice side effect, we will gain all existing users on that system.
+Fortunately, a plugin for volatilty exists which allows dumping the password hashes.
+The process, however, is a bit cumbersome and could be more automated in the future.
+We start off finding Registry data in the memory using the \texttt{hivescan} command which will give us the offset of the data in memory.
+We scan two of these memory locations to make sure that we identify the Security and the System hive whichs addresses we have to remember (in our case \texttt{0xe1035b60} and \texttt{0xe16bdb60}).
+With these addresses, we run the volatility \texttt{hashdump} tool which happily prints all the password hashes.
+\begin{verbatim}
+$ python volatility hivescan -f memorydump
+/tmp/volatility-1.3b/forensics/win32/crashdump.py:31: DeprecationWarning: the sha module is deprecated; use the hashlib module instead
+  import sha
+Offset          (hex)
+58175496        0x377b008
+58202976        0x3781b60
+63080280        0x3c28758
+118954848       0x7171b60
+268880736       0x1006cb60
+292773896       0x11736008
+294130688       0x11881400
+414687240       0x18b7a008
+421538656       0x19202b60
+424552368       0x194e27b0
+425945952       0x19636b60
+436572168       0x1a059008
+705187848       0x2a085008
+$ python volatility hivelist -f memorydump  -o 0x377b008
+/tmp/volatility-1.3b/forensics/win32/crashdump.py:31: DeprecationWarning: the sha module is deprecated; use the hashlib module instead
+  import sha
+Address      Name
+0xe1e8cb60   \DaS\joe\LS\AD\Microsoft\Windows\UsrClass.dat
+0xe261f008   \DaS\joe\NTUSER.DAT
+0xe1e65b60   \DaS\LocalService\LS\AD\Microsoft\Windows\UsrClass.dat
+0xe1f14008   \DaS\LocalService\NTUSER.DAT
+0xe1e797b0   \DaS\NetworkService\LS\AD\Microsoft\Windows\UsrClass.dat
+0xe1e03008   \DaS\NetworkService\NTUSER.DAT
+0xe1776008   \WINDOWS\system32\config\software
+0xe1756400   \WINDOWS\system32\config\default
+0xe16e3b60   \WINDOWS\system32\config\SECURITY
+0xe16bdb60   \WINDOWS\system32\config\SAM
+0xe14b8758   [no name]
+0xe1035b60   \WINDOWS\system32\config\system
+0xe102e008   [no name]
+$ python volatility hivelist -f memorydump  -o 0x1a059008
+/tmp/volatility-1.3b/forensics/win32/crashdump.py:31: DeprecationWarning: the sha module is deprecated; use the hashlib module instead
+  import sha
+Address      Name
+0xe1e03008   \Documents and Settings\NetworkService\NTUSER.DAT
+0xe1776008   \WINDOWS\system32\config\software
+0xe1756400   \WINDOWS\system32\config\default
+0xe16e3b60   \WINDOWS\system32\config\SECURITY  <-- Security Hive
+0xe16bdb60   \WINDOWS\system32\config\SAM
+0xe14b8758   [no name]
+0xe1035b60   \WINDOWS\system32\config\system    <-- System Hive
+0xe102e008   [no name]
+0xe1e8cb60   \DaS\joe\LS\AD\Microsoft\Windows\UsrClass.dat
+0xe261f008   \DaS\joe\NTUSER.DAT
+0xe1e65b60   \DaS\LocalService\LS\AD\Microsoft\Windows\UsrClass.dat
+0xe1f14008   \DaS\LocalService\NTUSER.DAT
+0xe1e797b0   \DaS\NetworkService\LS\AD\Microsoft\Windows\UsrClass.dat
+$ python volatility hashdump -f memorydump  -y 0xe1035b60 -s 0xe16bdb60
+/tmp/volatility-1.3b/forensics/win32/crashdump.py:31: DeprecationWarning: the sha module is deprecated; use the hashlib module instead
+  import sha
+Administrator:500:2637e35bf0422b90aad3b435b51404ee:48ff5741a4f96d75a9dc23432a6c2fb6:::
+Guest:501:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0:::
+HelpAssistant:1000:69d67a492c3dd902282b6be852ba02cf:4672a0174e4f2400bb0fd10d50b9868c:::
+SUPPORT_388945a0:1002:aad3b435b51404eeaad3b435b51404ee:c0e2f264bd5be499af3d7b9740579aa7:::
+joe:1005:fb62f624fe735986aad3b435b51404ee:c025e7fccfbccc90b057725ef909f4e2:::
+mary:1006:758cd98ba77b7ff8aad3b435b51404ee:67f301368e34e8d7a3e5def3d74dbbf2:::
+$
+\end{verbatim}
+Having obtained these hashes, one could use, i.e.\, Ophcrack\footnote{\url{http://ophcrack.sourceforge.net/}} to recover the password.
+A web based interface is available\footnote{\url{http://www.objectif-securite.ch/en/products.php}} and successfully recovered each and every password (empty, BLOGGS, MARY123, SMITH, KO*5VUMOWUKGAD).
+Advanced attacks such as Pass-The-Hash\footnote{\url{http://www.sans.org/reading_room/whitepapers/testing/passthehash_attacks_tools_and_mitigation_33283}} might also be possible.
+
+It would be interesting to know, how to obtain password hashes from a running Linux or Mac system.
+Again, we were not able to do that but the technique should be straight forward: Obtain RAM, get your own hash and search for this well known hash in memory.
+The harder work will then be to identify the data structures in which the hashes are embedded to reliably identify the hash storage for generality.
+% \FIXME{Interesting: Does Linux keep the Hashes around as well? Compile the fmem module, grep for a known hash}
+
+
+
+
+
+
+\section{Conclusion}
+
+
+We imaged RAM using two methods: Firstly via FireWire using a normal Laptop running Linux and secondly using a program called \texttt{Windd} on the Windows system itself.
+
+
+The contents of the RAM was analysed using regular and simple GNU tools before we used a special tool called \texttt{Volatility}.
+We could identify a given JPEG picture being in a processes virtual address space.
+It is thus very likely that the user viewed that picture. We then extracted this picture from the process RAM image using \texttt{dd}.
+
+We patched and packaged Volatility for Debian/Ubuntu so that everybody can easily install and use it.
+Plugins for Volatality were prepared and packaged as well to provide maximal functionality.
+
+Password hashes were obtained which potentially allowed recovering of the password.
+That in turn might be useful for further analysis, i.e.\, to decrypt locally encrypted files.
+
+Furthermore, we discussed future work which will identify the way an attacker has to hot-patch a victims memory in order to unlock a machine or inject new processes.
+
+
+\section*{License}
+This work is licensed to the public under the Creative Commons Attribution-Non-Commercial-Share Alike 3.0 Germany License.
+\begin{center}\includegraphics{bin/by-nc-sa-eu.png}\end{center}
+
+
+\end{document}
+
