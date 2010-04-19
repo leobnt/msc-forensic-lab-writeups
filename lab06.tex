@@ -266,7 +266,7 @@ We tried using \texttt{cat} to dump the RAM but found that it read past the end 
 This is a known bug with \texttt{fmem} which the author notes in the README file provided with the module.
 
 
-In order to be able to load the module, it need to be downloaded\footnote{from \url{http://hysteria.sk/~niekt0/foriana/fmem_current.tgz}} and compiled\footnote{untar, make, and run the supplied run.sh script to install} first.
+In order to be able to load the module, it needs to be downloaded\footnote{from \url{http://hysteria.sk/~niekt0/foriana/fmem_current.tgz}} and compiled\footnote{untar, make, and run the supplied run.sh script to install} first.
 As the steps are pretty straight forward, we skip the details of how to do it.
 
 
@@ -279,7 +279,7 @@ While unlocking has been done for a Windows XP SP2 system\footnote{winlockpwn}, 
 With QEmu, we are able to run a target system, say Windows XP SP3, and get two memory dumps:
 The first while the machine is locked, and the second right after unlocking.
 By looking at the difference, we might be able to tell which data has to be modified in what way in order to remotely unlock the machine.
-This technique can also be used to, say, disable a Firewall, elevate priviledges or even inject new processes into the running system.
+This technique can also be used to, say, disable a Firewall, elevate privileges or even inject new processes into the running system.
 It is noteworthy that this method is Operating System independent for both, the host and the guest, because QEmu is free software which run on many platforms and can itself run many Operating Systems.
 Due to timeconstraints, however, we had to put this off for future research.
 
@@ -421,7 +421,7 @@ Here we can see that the JPEG picture ends at address \texttt{0x4e40e19}.
 4e40e20: 7000 7800 2700 2c00 2700 2700 2900 3b00  p.x.'.,.'.'.).;.
 \end{verbatim}
 
-Then using \texttt{dd} with a block size of one byte, and knowing the start and end addresses of our picture image obtained above,  we we can get python to work out the decimal number of bytes to \emph{skip} into the file and also the decimal number of bytes to \emph{count} or read from that position.
+Then using \texttt{dd} with a block size of one byte, and knowing the start and end addresses of our picture image obtained above,  we can get python to work out the decimal number of bytes to \emph{skip} into the file and also the decimal number of bytes to \emph{count} or read from that position.
 
 \begin{verbatim}
 $ dd if=2212.dmp bs=1 skip=$(python -c 'print 0x4e20008')
