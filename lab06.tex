@@ -229,7 +229,9 @@ Given that products on the forensic market are pretty expensive, building such a
 
 
 \section{Obtaining RAM using Windd}
-Windd\footnote{\url{http://windd.msuiche.net/}} is a gratis (but neither open souce nor free) tool for dumping the RAM contents of PCs running Microsoft Windows. It is worth noting here that by running any program, including Windd on a target PC, alters the state of the machine, but it can be argued that capturing a live RAM image for later investigation outweighs this downside.
+Windd\footnote{\url{http://windd.msuiche.net/}} is a gratis (but neither open source nor free) tool for dumping the RAM contents of PCs running Microsoft Windows.
+It is worth noting here that by running any program, including Windd, on a target PC, the state of the machine is altered.
+But it can be argued that capturing a live RAM image for later investigation outweighs this downside.
 
 
 When running Windd, we ran into an issue which prevented us from obtaining a memory dump:
@@ -280,10 +282,10 @@ With QEmu, we are able to run a target system, say Windows XP SP3, and get two m
 The first while the machine is locked, and the second right after unlocking.
 By looking at the difference, we might be able to tell which data has to be modified in what way in order to remotely unlock the machine.
 This technique can also be used to, say, disable a Firewall, elevate privileges or even inject new processes into the running system.
-It is noteworthy that this method is Operating System independent for both, the host and the guest, because QEmu is free software which run on many platforms and can itself run many Operating Systems.
+It is noteworthy that this method is Operating System independent for both, the host and the guest, because QEmu is free software which runs on many platforms and can itself run many Operating Systems.
 Due to timeconstraints, however, we had to put this off for future research.
 
-Other improvements can and should be made to QEmu include providing a file that exposes the guests RAM and allows reading and writing, so that dumping the whole memory will not be needed anymore.
+Improvements, which can and should be made to QEmu, include providing a file that exposes the guests RAM and allows reading and writing, so that dumping the whole memory will not be needed anymore.
 
 
 
@@ -335,7 +337,7 @@ We can see that from the output of Windd from when we created the initial memory
 \end{verbatim}
 
 In order to link them we would need to find the page table for a given process and link the pages together.
-As it will turn out later, volatility can do that for us.
+As it will turn out later, Volatility can do that for us.
 
 
 
@@ -347,7 +349,7 @@ As it will turn out later, volatility can do that for us.
 \subsection{Analysing a WindowsXP RAM image  Using Volatility}
 To examine a Windows XP memory dump, one wants to use a framework that helps ripping interesting information out of the large amount of binary data.
 Such a tool is \emph{Volatility}.
-We will first discuss how to install volatility on Ubuntu 9.10 and then show how to use it to get password hashes as well as verify whether a picture was most likely loaded and viewed in a windows application.
+We will first discuss how to install Volatility on Ubuntu 9.10 and then show how to use it to get password hashes as well as verify whether a picture was most likely loaded and viewed in a windows application.
 
 
 
@@ -385,7 +387,7 @@ We have seen earlier that the physical address space contains many 4kB sized pag
 This is a problem for analysing the memory because we usually expect data to be larger than 4kB and this data is most likely fragmented in physical memory.
 So extracting a picture from the raw memory dump, while possible would be problematic.
 Our approach was to create a contiguous dump of a processes virtual memory address space and to search our target image in that memory dump.
-Fortunately, volatility is already able to dump a processes virtual memory address space, which leaves us with the admittedly not too hard task of finding and extracting binary data of that picture.
+Fortunately, Volatility is already able to dump a processes virtual memory address space, which leaves us with the admittedly not too hard task of finding and extracting binary data of that picture.
 
 We started by generating a  list of running processes from the RAM image to identify the process ID of our target process (\texttt{firefox} in our case).
 
@@ -449,7 +451,7 @@ Fortunately, a plugin for volatilty exists which allows dumping the password has
 The process, however, is a bit cumbersome and could be more automated in the future.
 We start off finding Registry data in the memory using the \texttt{hivescan} command which will give us the offset of the data in memory.
 We scan two of these memory locations to make sure that we identify the Security and the System hive whichs addresses we have to remember (in our case \texttt{0xe1035b60} and \texttt{0xe16bdb60}).
-With these addresses, we run the volatility \texttt{hashdump} tool which happily prints all the password hashes.
+With these addresses, we run the Volatility \texttt{hashdump} tool which happily prints all the password hashes.
 \begin{verbatim}
 $ python volatility hivescan -f memorydump
 /tmp/volatility-1.3b/forensics/win32/crashdump.py:31: DeprecationWarning: the sha module is deprecated; use the hashlib module instead
