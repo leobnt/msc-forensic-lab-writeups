@@ -141,7 +141,7 @@ We were given a windows XP dd image which we mounted as follows to preserve its 
 
 \subsection{Recent Documents}
 For convenience, Windows saves links to the recently accessed documents.
-This allows the user to quickly find the last files she worked on or look at.
+This allows the user to quickly find the last files she worked on or looked at.
 These links are actually files with the \texttt{.lnk} extension, as opposed to lightweight symlinks.
 Microsoft generously released documentation for that file format in 2009\footnote{See \url{http://download.microsoft.com/download/B/0/B/B0B199DB-41E6-400F-90CD-C350D0C14A53/\%5BMS-SHLLINK\%5D.pdf}},
 after having introduced that fileformat 15 years ago with Windows 95\footnote{Cmp.\url{http://en.wikipedia.org/wiki/Computer_shortcut}}.
@@ -265,14 +265,14 @@ $ vinetto -o . '/mnt/xpdisk/Documents and Settings/
 
 As a side note: It would have been nice if the information shown above could be integrated in the already existing timeline to have a unified view on the actions that took place on the system.
 To achieve that, one could think of a standard for saving such an information in a normalised manner, just like CISAT\footnote{CISAT from \url{http://web.sec.uni-passau.de/research/softwaresecurity/cisat/} defines a standard for static analysis results to unify output of several tools} does for security scanners.
-A naive approach would be to save a \href{http://www.ietf.org/rfc/rfc2822.txt}{RFC 2822} conforming timestamp along with the filename in question, but to be compatible and extensible, more thoughts need to be spend on that.
+A naive approach would be to save a \href{http://www.ietf.org/rfc/rfc2822.txt}{RFC 2822} conforming timestamp along with the filename in question, but to be compatible and extensible, more thoughts need to be spent on that.
 After coming up with a standard notation for events, one either needs to parse the Vinetto output or better: Patch Vinetto so that the output conforms the standard right away.
 However, due to timecontraints, we were not able to do that.
 
 Using the Vinetto output above, it is now interesting to check whether the filesystem still knows about the filenames Vinetto extracted, because if it does not, we can safely assume that file has been either moved or removed.
 Thus, a search of the contents of the {\tt My Documents/My Pictures/duckies/} folder for the user {\tt Donald} was performed to determine if the contents of the folder corresponded to the entries in the \texttt{Thumbs.db} file.
 
-You can see blow that the only files found on the disk in the duckies directory are the two picture files \texttt{space-duck.jpg} and \texttt{Yellow Ducks\_s.jpg} and the \texttt{Thumbs.db} file.
+We can see below that the only files found on the disk in the duckies directory are the two picture files \texttt{space-duck.jpg} and \texttt{Yellow Ducks\_s.jpg} and the \texttt{Thumbs.db} file.
 It is noted that the \texttt{Thumbs.db} file contains images for additional picture files (shown above) which are not present in the filesystem:
 \begin{verbatim}
 $ cd '/mnt/xpdisk/Documents and Settings/Donald/' &&
@@ -299,7 +299,7 @@ Thus, we can assume that pictures (with the filenames shown above) have been pre
 
 
 \subsubsection{Observations}
-Interestingly, the {\tt Thumbs.db} file an image named
+Interestingly, the {\tt Thumbs.db} file contains an image named
 \texttt{\{A42CD7B6-E9B9-4D02-B7A6-288B71AD28BA\}}
 (line 0003).
 By looking at the extracted image file, we figured that it is used as folder icon.
@@ -335,7 +335,7 @@ We would have expected that the last modification time as reported by Vinetto ma
 \end{verbatim}
 
 This begs the question, what the semantic of the time reported by Vinetto actually is.
-Sadly, since Windows is a proprietary system, one can not look at the code that generates those \texttt{Thumbs.db} files.
+Sadly, since Windows is a proprietary system, one cannot look at the code that generates those \texttt{Thumbs.db} files.
 Also, the documentation is not very verbose regarding the structure of a \texttt{Thumbs.db} file\footnote{See \url{http://msdn.microsoft.com/en-us/library/bb774628\%28VS.85\%29.aspx} and \url{http://blogs.msdn.com/openspecification/archive/2009/07/24/exploring-the-compound-file-binary-format.aspx}}.
 The most information is found in a 3rd party document\footnote{\url{http://vinetto.sourceforge.net/docs.html} and \url{http://sc.openoffice.org/compdocfileformat.pdf}} and it claims that the file structure holds two timestamps: The creation and the last modification.
 This expands the raised question to: Why Vinetto is only showing a single timestamp and which one it is.
@@ -458,7 +458,7 @@ The \texttt{INFO2} file is updated the latest.
 %The user named ``foo'' was logged on.
 %It is, however, unclear whether the action can be attributed to the person because there is no evidence (yet) that it was actually the person that did the actions.
 
-A Windows XP \texttt{dd} disk image was used for this analysis and mounted readonly, artefacts examined during our investigation included, windows \texttt{.lnk} files, the \texttt{Thumbs.db} file and the Recycle Bin. A timeline was generated and was compared to the times obtained from each of these artefacts.
+A Windows XP \texttt{dd} disk image was used for this analysis and mounted readonly, artefacts examined during our investigation included windows \texttt{.lnk} files, the \texttt{Thumbs.db} file and the Recycle Bin. A timeline was generated and was compared to the times obtained from each of these artefacts.
 
 Our case study begins with the analysis of Windows XP links, it was found that a Windows XP link consisted of a binary file instead of being a lightweight filesystem link.
 Information stored in these files included the hostname of the machine the link was created on, the path to the file, and the UUID and type of storage the actual file resided on.
