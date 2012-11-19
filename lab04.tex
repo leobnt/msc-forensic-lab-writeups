@@ -189,7 +189,7 @@ The final section on disk that we need to look at is the root directory section.
 
 In this section we will explore the formatting technique used by Windows XP to see which parts of the disk get overwritten when formatting first using a quick format and then when using a full format. The object of this exercise is to see what information remains on the disk after formatting in windows, and therefore if it would then be recoverable.
 
-Initially, we initially tried to create four partitions in linux and format them in windows, but ran into problems in windows, where it would not format a partition other than the first one on a removable device. So we decided to create and format the partitions from the windows XP Disk Management utility found in Administrative Tools, but again windows would not let us create multiple partitions. With Windows not being cooperative,  a single 10M partition was repeatedly removed and created on the USB device.
+Initially we tried to create four partitions in linux and format them in windows, but ran into problems in windows, where it would not format a partition other than the first one on a removable device. So we decided to create and format the partitions from the windows XP Disk Management utility found in Administrative Tools, but again windows would not let us create multiple partitions. With Windows not being cooperative,  a single 10M partition was repeatedly removed and created on the USB device.
 
 We used a 512MB compact flash card to perform our tests to create the 10MB partition. We initially filled the disk with zeros so as to give us a nice clean disk to generate our first image. This will be the baseline image which we will compare to later generated disk images
 
@@ -433,7 +433,7 @@ This is file1.txt.
 With this technique we can read arbitrary bytes from the disk and could be used effectively to restore a fragmented file by concatenating the output from various \texttt{dd} commands. This technique can also be used effectively to recover information from cluster slack space.
 
 \section{Exploring Cluster and Sector Sizes}
-There is a relationship between between cluster, sector sizes which is worth exploring, the size of the files you are working with and the cluster size impacts directly on the amount of slack space in FAT16. We also wanted to test how many files the filesystem could hold using different sector and cluster formatting parameters.
+There is a relationship between cluster, sector sizes (which is worth exploring), the size of the files you are working with and the cluster size impacts directly on the amount of slack space in FAT16. We also wanted to test how many files the filesystem could hold using different sector and cluster formatting parameters.
 
 Our first attempt to fill the disk will lots of small files failed due to the fact that the root directory can only hold 256 file entries and cannot grow. The FAT table ended up with unused entries and subsequently so did the data area of the disk. We then created a subdirectory on the disk and used our script to fill up the disk with lots of small files in the subdirectory.
 
